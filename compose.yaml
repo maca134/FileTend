@@ -1,0 +1,15 @@
+services:
+    filetend:
+        container_name: filetend
+        # image: ghcr.io/maca134/frankie-dayz-ext-admin:latest
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        command: bun start
+        environment:
+            - NODE_ENV=production
+networks:
+    default:
+        name: filetend
+

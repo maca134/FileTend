@@ -1,0 +1,10 @@
+{
+	"extends": "./tsconfig.json",
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"eslint.config.ts",
+		"vite.config.ts",
+		"bun-env.d.ts"
+	]
+}
