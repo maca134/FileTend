@@ -18,7 +18,7 @@ const raw = z
 			.transform((value) =>
 				isAbsolute(value) ? value : resolve(process.cwd(), value)
 			)
-			.default("/app/data"),
+			.default("/srv"),
 		PORT: z.string().regex(/^\d+$/).transform(Number).default(3000),
 		SECRET_KEY: z.string().default(randomBytes(32).toString("hex")),
 		READ_ONLY: zStringBoolean.default(false),

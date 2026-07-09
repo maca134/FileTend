@@ -2,5 +2,5 @@ FROM oven/bun:debian
 WORKDIR /app
 COPY . .
 RUN bun install --production
-VOLUME /app/data
+VOLUME /srv
 EXPOSE 3000

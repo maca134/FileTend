@@ -1,10 +1,14 @@
 services:
     filetend:
         container_name: filetend
-        # image: ghcr.io/maca134/frankie-dayz-ext-admin:latest
+        # image: ghcr.io/maca134/filetend:latest
         build:
             context: .
             dockerfile: Dockerfile
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./src:/srv
         restart: unless-stopped
         command: bun start
         environment:
