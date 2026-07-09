@@ -13,9 +13,7 @@ export const FileIcon = ({
 	return (
 		<svg
 			viewBox={viewBox}
-			className={cn(
-				"shrink-0 size-5",
-			)}
+			className={cn("shrink-0 size-5")}
 			dangerouslySetInnerHTML={{ __html: markup }}
 		/>
 	);

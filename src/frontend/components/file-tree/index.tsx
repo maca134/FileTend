@@ -66,7 +66,8 @@ export function FileTree() {
 	const uploadFile = useUploadFile();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragOver, setIsDragOver] = useState(false);
-	const isCreatingAtRoot = !!creatingNode && creatingNode.parentPath === undefined;
+	const isCreatingAtRoot =
+		!!creatingNode && creatingNode.parentPath === undefined;
 
 	useRevealActiveTab();
 

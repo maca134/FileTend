@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import {
+	afterAll,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -41,9 +48,7 @@ describe("GET /download", () => {
 		const res = await api.request("/download?path=folder");
 		expect(res.status).toBe(200);
 		expect(res.headers.get("content-type")).toBe("application/zip");
-		expect(res.headers.get("content-disposition")).toContain(
-			"folder.zip"
-		);
+		expect(res.headers.get("content-disposition")).toContain("folder.zip");
 	});
 
 	test("404s when the path does not exist", async () => {

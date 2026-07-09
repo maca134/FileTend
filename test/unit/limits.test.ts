@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { env } from "../../src/lib/env";
-import { assertExtensionAllowed, assertSizeAllowed } from "../../src/lib/limits";
+import {
+	assertExtensionAllowed,
+	assertSizeAllowed,
+} from "../../src/lib/limits";
 
 describe("assertExtensionAllowed", () => {
 	const original = {

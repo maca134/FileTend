@@ -23,7 +23,9 @@ function resolveSetiIconName(filename: string): string {
 				matches = filename === rule.pattern;
 				break;
 			case "extension":
-				matches = filename.toLowerCase().endsWith(rule.pattern.toLowerCase());
+				matches = filename
+					.toLowerCase()
+					.endsWith(rule.pattern.toLowerCase());
 				break;
 			case "partial":
 				matches = filename.includes(rule.pattern);

@@ -33,9 +33,9 @@ describe("resolveSafePath", () => {
 	});
 
 	test("rejects a lexical .. traversal", async () => {
-		await expect(
-			resolveSafePath(root, "../outside.txt")
-		).rejects.toThrow("outside of the root directory");
+		await expect(resolveSafePath(root, "../outside.txt")).rejects.toThrow(
+			"outside of the root directory"
+		);
 	});
 
 	test("rejects a nested .. traversal that escapes the root", async () => {
