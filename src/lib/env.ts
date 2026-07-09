@@ -27,6 +27,8 @@ const raw = z
 		ALLOW_RENAME: zStringBoolean.default(true),
 		ALLOW_UPLOAD: zStringBoolean.default(true),
 		ALLOW_DOWNLOAD: zStringBoolean.default(true),
+		ALLOW_CHMOD: zStringBoolean.default(true),
+		ALLOW_CHOWN: zStringBoolean.default(false),
 		MAX_FILE_SIZE: z
 			.union([
 				z.number().int().positive(),

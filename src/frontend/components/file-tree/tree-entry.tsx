@@ -11,6 +11,7 @@ import { useDeleteNode, useTreeQuery, useUploadFile } from "../../lib/queries";
 import { ConfirmDialog } from "../confirm-dialog";
 import { ContextMenu, type ContextMenuItem } from "../context-menu";
 import { FileIcon } from "../file-icon";
+import { PropertiesDialog } from "../properties-dialog";
 import { CreateInputRow } from "./create-input-row";
 import { RenameInputRow } from "./rename-input-row";
 import { registerTreeEntryRef } from "./tree-entry-refs";
@@ -27,6 +28,7 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const isActive = activeTabPath === node.path;
 	const deleteNode = useDeleteNode();
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	const [propertiesOpen, setPropertiesOpen] = useState(false);
 
 	const items: ContextMenuItem[] = [
 		{
@@ -55,6 +57,13 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 		{
 			label: "Delete",
 			onSelect: () => setConfirmDeleteOpen(true),
+		},
+		{
+			separator: true,
+		},
+		{
+			label: "Properties...",
+			onSelect: () => setPropertiesOpen(true),
 		},
 	];
 
@@ -118,6 +127,13 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 					setConfirmDeleteOpen(false);
 				}}
 			/>
+			<PropertiesDialog
+				path={node.path}
+				name={node.name}
+				type={node.type}
+				open={propertiesOpen}
+				onOpenChange={setPropertiesOpen}
+			/>
 		</>
 	);
 }
@@ -140,6 +156,7 @@ function DirectoryTreeEntry({
 	const deleteNode = useDeleteNode();
 	const uploadFile = useUploadFile();
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	const [propertiesOpen, setPropertiesOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
 	const isExpanded = expandedPaths.includes(node.path);
@@ -178,6 +195,13 @@ function DirectoryTreeEntry({
 		{
 			label: "Delete",
 			onSelect: () => setConfirmDeleteOpen(true),
+		},
+		{
+			separator: true,
+		},
+		{
+			label: "Properties...",
+			onSelect: () => setPropertiesOpen(true),
 		},
 	];
 
@@ -231,7 +255,7 @@ function DirectoryTreeEntry({
 							isActive && "bg-accent",
 							!isActive && "hover:bg-accent/40",
 							isDragOver &&
-							"bg-accent/60 ring-1 ring-inset ring-ring",
+								"bg-accent/60 ring-1 ring-inset ring-ring",
 							"data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-ring"
 						)}
 						style={{ paddingLeft: 8 + depth * 8 }}
@@ -274,6 +298,13 @@ function DirectoryTreeEntry({
 					setConfirmDeleteOpen(false);
 				}}
 			/>
+			<PropertiesDialog
+				path={node.path}
+				name={node.name}
+				type={node.type}
+				open={propertiesOpen}
+				onOpenChange={setPropertiesOpen}
+			/>
 			{isExpanded && (
 				<div>
 					{creatingNode?.parentPath === node.path && (
@@ -290,7 +321,7 @@ function DirectoryTreeEntry({
 							Loading…
 						</div>
 					) : children.length === 0 &&
-						creatingNode?.parentPath !== node.path ? (
+					  creatingNode?.parentPath !== node.path ? (
 						<div
 							className="py-1 text-xs text-muted-foreground italic"
 							style={{ paddingLeft: 8 + (depth + 1) * 14 }}

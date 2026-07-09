@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -29,6 +35,8 @@ export function resetEnvDefaults(): void {
 	env.ALLOW_RENAME = true;
 	env.ALLOW_UPLOAD = true;
 	env.ALLOW_DOWNLOAD = true;
+	env.ALLOW_CHMOD = true;
+	env.ALLOW_CHOWN = false;
 	env.MAX_FILE_SIZE = 10 * 1024 * 1024;
 	env.ALLOWED_EXTENSIONS = undefined;
 	env.DENY_EXTENSIONS = undefined;

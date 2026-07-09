@@ -5,6 +5,7 @@ import download from "./download";
 import file from "./file";
 import login from "./login";
 import logout from "./logout";
+import properties from "./properties";
 import rename from "./rename";
 import status from "./status";
 import tree from "./tree";
@@ -18,6 +19,8 @@ const api = app
 	.post("/auth/logout", logout)
 	.use(auth)
 	.get("/tree", tree)
+	.get("/properties", properties.get)
+	.patch("/properties", properties.patch)
 	.get("/file", file.get)
 	.put("/file", file.put)
 	.post("/file", file.post)

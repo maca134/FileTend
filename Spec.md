@@ -22,6 +22,8 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 | `ALLOW_RENAME` | `true` | |
 | `ALLOW_UPLOAD` | `true` | |
 | `ALLOW_DOWNLOAD` | `true` | |
+| `ALLOW_CHMOD` | `true` | Editing permissions from the Properties dialog |
+| `ALLOW_CHOWN` | `false` | Editing owner/group from the Properties dialog. Off by default — usually requires the container to run as root |
 | `MAX_FILE_SIZE` | `10485760` (10MB) | Cap for editable/uploadable file size |
 | `ALLOWED_EXTENSIONS` | *(empty)* | Optional allow-list, comma-separated. Empty = unrestricted |
 | `DENY_EXTENSIONS` | *(empty)* | Optional deny-list, comma-separated |
@@ -39,6 +41,8 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 
 **Files**
 - `GET /api/tree?path=` — list directory contents
+- `GET /api/properties?path=` — permissions, ownership, size, and timestamps for a file/folder (best-effort; uid/gid → name resolution only works on Linux)
+- `PATCH /api/properties?path=` — `{ mode?, uid?, gid? }` → change permissions (blocked unless `ALLOW_CHMOD`) and/or owner/group (blocked unless `ALLOW_CHOWN`); both blocked if `READ_ONLY`
 - `GET /api/file?path=` — read file content
 - `PUT /api/file?path=` — write file content (blocked if `READ_ONLY`)
 - `POST /api/file` — `{ parentPath, name, type }` → create file/folder (blocked unless `ALLOW_CREATE`)
@@ -53,7 +57,7 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 
 - All path params must be resolved against `ROOT_DIR` and checked for containment (block `../` traversal, absolute paths, and symlink escapes via `realpath` comparison) before any filesystem call.
 - Auth cookie: HMAC-signed, `httpOnly`, `sameSite=lax`.
-- Every write-capable route (`PUT`, `POST /api/file`, `DELETE`, `/api/rename`, `/api/upload`) must check the relevant `ALLOW_*`/`READ_ONLY` flag server-side — not just hide the button in the UI.
+- Every write-capable route (`PUT`, `POST /api/file`, `DELETE`, `/api/rename`, `/api/upload`, `PATCH /api/properties`) must check the relevant `ALLOW_*`/`READ_ONLY` flag server-side — not just hide the button in the UI.
 
 ## Frontend Notes
 

@@ -108,6 +108,47 @@ export function useRenameNode() {
 	});
 }
 
+export function usePropertiesQuery(path: string, enabled: boolean) {
+	return useQuery({
+		queryKey: ["properties", path],
+		queryFn: async () => {
+			const res = await api.properties.$get({ query: { path } });
+			if (!res.ok) throw new Error("Failed to load properties");
+			return res.json();
+		},
+		enabled,
+	});
+}
+
+export function useUpdatePropertiesMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (input: {
+			path: string;
+			mode?: number;
+			uid?: number;
+			gid?: number;
+		}) => {
+			const { path, ...json } = input;
+			const res = await api.properties.$patch({
+				query: { path },
+				json,
+			});
+			if (!res.ok) {
+				const message = await (res as Response).text().catch(() => "");
+				throw new Error(message || "Failed to update properties");
+			}
+			return res.json();
+		},
+		onSuccess: (_data, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["properties", variables.path],
+			});
+		},
+	});
+}
+
 export function useFileContent(path: string | null) {
 	return useQuery({
 		queryKey: ["file", path],
