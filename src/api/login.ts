@@ -1,10 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
-import { setSignedCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import z from "zod";
 
 import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
+import { setSessionCookie } from "../lib/session";
 
 const schema = z.object({
 	password: z.string(),
@@ -23,12 +23,7 @@ const handler = createHandler(zValidator("json", schema), async (c) => {
 		throw new HTTPException(401, { message: "Invalid password" });
 	}
 
-	await setSignedCookie(c, "session", "authenticated", env.SECRET_KEY, {
-		httpOnly: true,
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await setSessionCookie(c);
 
 	return c.json({ status: "ok" });
 });

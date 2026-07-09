@@ -240,7 +240,11 @@ function DirectoryTreeEntry({
 								isExpanded && "rotate-90"
 							)}
 						/>
-						<FileIcon type={node.type} path={node.path} />
+						<FileIcon
+							type={node.type}
+							path={node.path}
+							expanded={isExpanded}
+						/>
 						<span className="truncate -mt-1">{node.name}</span>
 						<Dot
 							className={cn(
@@ -284,6 +288,14 @@ function DirectoryTreeEntry({
 							style={{ paddingLeft: 8 + (depth + 1) * 14 }}
 						>
 							Loading…
+						</div>
+					) : children.length === 0 &&
+					  creatingNode?.parentPath !== node.path ? (
+						<div
+							className="py-1 text-xs text-muted-foreground italic"
+							style={{ paddingLeft: 8 + (depth + 1) * 14 }}
+						>
+							Empty folder
 						</div>
 					) : (
 						children.map((child) => (

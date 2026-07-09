@@ -1,0 +1,102 @@
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
+
+import { createTempRoot, removeTempRoot } from "../helpers";
+
+// env.ts derives its exported config once, at module-load time, from
+// process.env. Testing different AUTH_ENABLED/AUTH_PASSWORD combinations
+// therefore requires a fresh process per combination rather than mutating
+// the singleton in-process. The child is spawned with cwd pointed at an
+// empty directory so Bun's automatic .env loading doesn't pull in the
+// developer's real project .env (which may itself set AUTH_ENABLED) and
+// silently override what this test is trying to isolate.
+const fixture = resolve(import.meta.dir, "../fixtures/print-env.ts");
+let emptyCwd: string;
+
+beforeAll(() => {
+	emptyCwd = createTempRoot("filetend-env-fixture-cwd-");
+});
+
+afterAll(() => {
+	removeTempRoot(emptyCwd);
+});
+
+async function authEnabledFor(
+	extraEnv: Record<string, string | undefined>
+): Promise<boolean> {
+	const childEnv: Record<string, string> = {};
+	for (const [key, value] of Object.entries(process.env)) {
+		if (value !== undefined) childEnv[key] = value;
+	}
+	for (const [key, value] of Object.entries(extraEnv)) {
+		if (value === undefined) delete childEnv[key];
+		else childEnv[key] = value;
+	}
+
+	const proc = Bun.spawn({
+		cmd: ["bun", "run", fixture],
+		cwd: emptyCwd,
+		env: childEnv,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const [stdout, stderr, exitCode] = await Promise.all([
+		new Response(proc.stdout).text(),
+		new Response(proc.stderr).text(),
+		proc.exited,
+	]);
+	if (exitCode !== 0) {
+		throw new Error(`print-env fixture failed: ${stderr}`);
+	}
+	return (JSON.parse(stdout.trim()) as { authEnabled: boolean }).authEnabled;
+}
+
+describe("env AUTH_ENABLED derivation", () => {
+	test(
+		"defaults to false when no password or override is set",
+		async () => {
+			const authEnabled = await authEnabledFor({
+				AUTH_PASSWORD: undefined,
+				AUTH_ENABLED: undefined,
+			});
+			expect(authEnabled).toBe(false);
+		},
+		10000
+	);
+
+	test(
+		"auto-enables when AUTH_PASSWORD is set",
+		async () => {
+			const authEnabled = await authEnabledFor({
+				AUTH_PASSWORD: "hunter2",
+				AUTH_ENABLED: undefined,
+			});
+			expect(authEnabled).toBe(true);
+		},
+		10000
+	);
+
+	test(
+		"an explicit AUTH_ENABLED=false overrides a set AUTH_PASSWORD",
+		async () => {
+			const authEnabled = await authEnabledFor({
+				AUTH_PASSWORD: "hunter2",
+				AUTH_ENABLED: "false",
+			});
+			expect(authEnabled).toBe(false);
+		},
+		10000
+	);
+
+	test(
+		"an explicit AUTH_ENABLED=true works without AUTH_PASSWORD",
+		async () => {
+			const authEnabled = await authEnabledFor({
+				AUTH_PASSWORD: undefined,
+				AUTH_ENABLED: "true",
+			});
+			expect(authEnabled).toBe(true);
+		},
+		10000
+	);
+});

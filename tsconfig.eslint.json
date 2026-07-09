@@ -3,6 +3,7 @@
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.tsx",
+		"test/**/*.ts",
 		"eslint.config.ts",
 		"vite.config.ts",
 		"bun-env.d.ts"

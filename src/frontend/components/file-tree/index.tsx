@@ -66,6 +66,7 @@ export function FileTree() {
 	const uploadFile = useUploadFile();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const isCreatingAtRoot = !!creatingNode && creatingNode.parentPath === undefined;
 
 	useRevealActiveTab();
 
@@ -200,16 +201,25 @@ export function FileTree() {
 				)}
 				{!isLoading && !isError && (
 					<div className="py-1 text-sm">
-						{creatingNode?.parentPath === undefined &&
-							creatingNode && (
-								<CreateInputRow
-									creatingNode={creatingNode}
+						{isCreatingAtRoot && creatingNode && (
+							<CreateInputRow
+								creatingNode={creatingNode}
+								depth={0}
+							/>
+						)}
+						{nodes.length === 0 && !isCreatingAtRoot ? (
+							<div className="p-3 text-sm text-muted-foreground italic">
+								This folder is empty
+							</div>
+						) : (
+							nodes.map((node) => (
+								<TreeEntry
+									key={node.path}
+									node={node}
 									depth={0}
 								/>
-							)}
-						{nodes.map((node) => (
-							<TreeEntry key={node.path} node={node} depth={0} />
-						))}
+							))
+						)}
 					</div>
 				)}
 			</ScrollArea>
