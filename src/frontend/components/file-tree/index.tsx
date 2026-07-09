@@ -152,7 +152,10 @@ export function FileTree() {
 						multiple
 						className="hidden"
 						onChange={(e) => {
-							uploadFiles(undefined, Array.from(e.target.files ?? []));
+							uploadFiles(
+								undefined,
+								Array.from(e.target.files ?? [])
+							);
 							e.target.value = "";
 						}}
 					/>

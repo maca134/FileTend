@@ -45,7 +45,9 @@ export function getLanguageForPath(path: string): string {
 		return NAME_LANGUAGE_MAP[lowerName] ?? "plaintext";
 	}
 
-	const ext = lowerName.includes(".") ? (lowerName.split(".").pop() ?? "") : "";
+	const ext = lowerName.includes(".")
+		? (lowerName.split(".").pop() ?? "")
+		: "";
 
 	return EXTENSION_LANGUAGE_MAP[ext] ?? "plaintext";
 }

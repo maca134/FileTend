@@ -157,38 +157,35 @@ const Tab = ({
 						<FileIcon type="file" path={tab.path} />
 						{tab.name}
 					</Button>
-					{
-						!tab.dirty ?
-							(
-								<Button
-									type="button"
-									variant={"invisible"}
-									size={"icon-xs"}
-									onClick={handleClose}
-									className={cn(
-										"cursor-pointer mr-2 hover:bg-accent",
-										!isActive && "opacity-0 group-hover:opacity-100"
-									)}
-									aria-label={`Close ${tab.name}`}
-								>
-									<X className="size-5" />
-								</Button>
-							) : (
-								<Button
-									type="button"
-									variant={"invisible"}
-									size={"icon-xs"}
-									onClick={handleClose}
-									className={cn(
-										"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent",
-									)}
-									aria-label={`Close ${tab.name}`}
-								>
-									<X className="col-start-1 row-start-1 size-5 opacity-0 transition-opacity group-hover/close:opacity-100" />
-									<div className="col-start-1 row-start-1 h-2 w-2 rounded-full bg-accent-foreground transition-opacity group-hover/close:opacity-0" />
-								</Button>
-							)
-					}
+					{!tab.dirty ? (
+						<Button
+							type="button"
+							variant={"invisible"}
+							size={"icon-xs"}
+							onClick={handleClose}
+							className={cn(
+								"cursor-pointer mr-2 hover:bg-accent",
+								!isActive && "opacity-0 group-hover:opacity-100"
+							)}
+							aria-label={`Close ${tab.name}`}
+						>
+							<X className="size-5" />
+						</Button>
+					) : (
+						<Button
+							type="button"
+							variant={"invisible"}
+							size={"icon-xs"}
+							onClick={handleClose}
+							className={cn(
+								"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent"
+							)}
+							aria-label={`Close ${tab.name}`}
+						>
+							<X className="col-start-1 row-start-1 size-5 opacity-0 transition-opacity group-hover/close:opacity-100" />
+							<div className="col-start-1 row-start-1 h-2 w-2 rounded-full bg-accent-foreground transition-opacity group-hover/close:opacity-0" />
+						</Button>
+					)}
 				</div>
 			</ContextMenu>
 			<ConfirmDialog

@@ -9,11 +9,11 @@ import { useEditorStore } from "@/store/editor-store";
 import type { FileTreeNode } from "../../../api/tree";
 import { useDeleteNode, useTreeQuery, useUploadFile } from "../../lib/queries";
 import { ConfirmDialog } from "../confirm-dialog";
+import { ContextMenu, type ContextMenuItem } from "../context-menu";
 import { FileIcon } from "../file-icon";
 import { CreateInputRow } from "./create-input-row";
 import { RenameInputRow } from "./rename-input-row";
 import { registerTreeEntryRef } from "./tree-entry-refs";
-import { ContextMenu, type ContextMenuItem } from "../context-menu";
 
 function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const openFile = useEditorStore((s) => s.openFile);
@@ -228,7 +228,8 @@ function DirectoryTreeEntry({
 							"flex w-full items-center gap-1 px-2 py-1 text-left cursor-pointer",
 							isActive && "bg-accent",
 							!isActive && "hover:bg-accent/40",
-							isDragOver && "bg-accent/60 ring-1 ring-inset ring-ring",
+							isDragOver &&
+								"bg-accent/60 ring-1 ring-inset ring-ring",
 							"data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-ring"
 						)}
 						style={{ paddingLeft: 8 + depth * 8 }}

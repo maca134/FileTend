@@ -33,10 +33,7 @@ export async function resolveSafePath(
 		try {
 			const realProbe = await realpath(probe);
 			const realRoot = await realpath(resolvedRoot);
-			const realTarget = resolve(
-				realProbe,
-				relative(probe, fullPath)
-			);
+			const realTarget = resolve(realProbe, relative(probe, fullPath));
 			if (!isContained(realRoot, realTarget)) {
 				throw new HTTPException(400, {
 					message: "Path is outside of the root directory",

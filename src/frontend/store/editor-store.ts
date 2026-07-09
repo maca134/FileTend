@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { type StateCreator, create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface OpenTab {
@@ -47,203 +47,229 @@ interface EditorState {
 	markTabSaved: (path: string, content: string) => void;
 }
 
-export const useEditorStore = create<EditorState>()(
-	persist(
-		(set, get) => ({
-			openTabs: [],
-			activeTabPath: null,
-			expandedPaths: [],
-			creatingNode: null,
-			renamingPath: null,
+// Open tabs can carry live file content (including for dirty, unsaved
+// edits), which may contain secrets (.env, docker-compose.yml, etc.).
+// BUN_PUBLIC_TAB_PERSISTENCE controls where/whether that's written to
+// browser storage: "local" (survives browser restarts), "session"
+// (cleared when the tab/browser closes -- the default), or "none" (never
+// written to storage at all; unsaved edits are lost on refresh).
+type TabPersistenceMode = "local" | "session" | "none";
 
-			openFile: (tab) => {
-				const { openTabs } = get();
-				set({
-					openTabs: openTabs.some((t) => t.path === tab.path)
-						? openTabs
-						: [...openTabs, { ...tab, dirty: false }],
-					activeTabPath: tab.path,
-				});
-			},
+function getTabPersistenceMode(): TabPersistenceMode {
+	// Bun inlines `process.env.BUN_PUBLIC_*` at build time only when the
+	// var is actually set; when it's unset, the raw `process.env.X`
+	// expression is left in the bundle as-is, and since there's no
+	// `process` polyfill in the browser, evaluating it throws. try/catch
+	// is the only guard that's safe regardless of whether inlining ran.
+	let value: string | undefined;
+	try {
+		value = process.env.BUN_PUBLIC_TAB_PERSISTENCE;
+	} catch {
+		value = undefined;
+	}
 
-			closeTab: (path) => {
-				const { openTabs, activeTabPath } = get();
-				const index = openTabs.findIndex((t) => t.path === path);
-				if (index === -1) return;
+	if (value === "local" || value === "session" || value === "none") {
+		return value;
+	}
+	return "session";
+}
 
-				const nextTabs = openTabs.filter((t) => t.path !== path);
-				const nextActive =
-					activeTabPath !== path
-						? activeTabPath
-						: ((nextTabs[index - 1] ?? nextTabs[index])?.path ??
-							null);
+const tabPersistenceMode = getTabPersistenceMode();
 
-				set({ openTabs: nextTabs, activeTabPath: nextActive });
-			},
+const createEditorStore: StateCreator<EditorState> = (set, get) => ({
+	openTabs: [],
+	activeTabPath: null,
+	expandedPaths: [],
+	creatingNode: null,
+	renamingPath: null,
 
-			closeOthers: (path) => {
-				const { openTabs } = get();
-				const kept = openTabs.filter((t) => t.path === path);
-				if (kept.length === openTabs.length) return;
-				set({ openTabs: kept, activeTabPath: path });
-			},
+	openFile: (tab) => {
+		const { openTabs } = get();
+		set({
+			openTabs: openTabs.some((t) => t.path === tab.path)
+				? openTabs
+				: [...openTabs, { ...tab, dirty: false }],
+			activeTabPath: tab.path,
+		});
+	},
 
-			closeToTheRight: (path) => {
-				const { openTabs, activeTabPath } = get();
-				const index = openTabs.findIndex((t) => t.path === path);
-				if (index === -1) return;
+	closeTab: (path) => {
+		const { openTabs, activeTabPath } = get();
+		const index = openTabs.findIndex((t) => t.path === path);
+		if (index === -1) return;
 
-				const nextTabs = openTabs.slice(0, index + 1);
-				if (nextTabs.length === openTabs.length) return;
+		const nextTabs = openTabs.filter((t) => t.path !== path);
+		const nextActive =
+			activeTabPath !== path
+				? activeTabPath
+				: ((nextTabs[index - 1] ?? nextTabs[index])?.path ?? null);
 
-				const activeStillOpen = activeTabPath
-					? nextTabs.some((t) => t.path === activeTabPath)
-					: false;
+		set({ openTabs: nextTabs, activeTabPath: nextActive });
+	},
 
-				set({
-					openTabs: nextTabs,
-					activeTabPath: activeStillOpen ? activeTabPath : path,
-				});
-			},
+	closeOthers: (path) => {
+		const { openTabs } = get();
+		const kept = openTabs.filter((t) => t.path === path);
+		if (kept.length === openTabs.length) return;
+		set({ openTabs: kept, activeTabPath: path });
+	},
 
-			closeAllTabs: () => set({ openTabs: [], activeTabPath: null }),
+	closeToTheRight: (path) => {
+		const { openTabs, activeTabPath } = get();
+		const index = openTabs.findIndex((t) => t.path === path);
+		if (index === -1) return;
 
-			setActiveTab: (path) => set({ activeTabPath: path }),
+		const nextTabs = openTabs.slice(0, index + 1);
+		if (nextTabs.length === openTabs.length) return;
 
-			toggleExpanded: (path) => {
-				let expandedPaths = get().expandedPaths;
-				if (expandedPaths.includes(path)) {
-					expandedPaths = expandedPaths.filter((p) => p !== path);
-				} else {
-					expandedPaths = [...expandedPaths, path];
-				}
-				set({ expandedPaths });
-			},
+		const activeStillOpen = activeTabPath
+			? nextTabs.some((t) => t.path === activeTabPath)
+			: false;
 
-			expandPath: (path) => {
-				if (get().expandedPaths.includes(path)) return;
-				const expandedPaths = [...get().expandedPaths, path];
-				set({ expandedPaths });
-			},
+		set({
+			openTabs: nextTabs,
+			activeTabPath: activeStillOpen ? activeTabPath : path,
+		});
+	},
 
-			expandMany: (paths) => {
-				const current = get().expandedPaths;
-				const additions = paths.filter((p) => !current.includes(p));
-				if (additions.length === 0) return;
-				set({ expandedPaths: [...current, ...additions] });
-			},
+	closeAllTabs: () => set({ openTabs: [], activeTabPath: null }),
 
-			collapseAll: () => set({ expandedPaths: [] }),
+	setActiveTab: (path) => set({ activeTabPath: path }),
 
-			startCreating: (parentPath, type) => {
-				if (parentPath !== undefined) get().expandPath(parentPath);
-				set({ creatingNode: { parentPath, type }, renamingPath: null });
-			},
-
-			cancelCreating: () => set({ creatingNode: null }),
-
-			startRenaming: (path) =>
-				set({ renamingPath: path, creatingNode: null }),
-
-			cancelRenaming: () => set({ renamingPath: null }),
-
-			renamePath: (oldPath, newPath) => {
-				const remap = (p: string) => {
-					if (p === oldPath) return newPath;
-					if (
-						p.startsWith(oldPath + "/") ||
-						p.startsWith(oldPath + "\\")
-					) {
-						return newPath + p.slice(oldPath.length);
-					}
-					return p;
-				};
-
-				const { openTabs, activeTabPath, expandedPaths } = get();
-
-				set({
-					openTabs: openTabs.map((t) => {
-						const remapped = remap(t.path);
-						if (remapped === t.path) return t;
-						const name = remapped.split(/[/\\]/).pop() ?? t.name;
-						return { ...t, path: remapped, name };
-					}),
-					activeTabPath: activeTabPath
-						? remap(activeTabPath)
-						: activeTabPath,
-					expandedPaths: expandedPaths.map(remap),
-				});
-			},
-
-			closeTabsUnder: (prefix) => {
-				const isUnder = (p: string) =>
-					p === prefix ||
-					p.startsWith(prefix + "/") ||
-					p.startsWith(prefix + "\\");
-
-				const { openTabs, activeTabPath } = get();
-				const nextTabs = openTabs.filter((t) => !isUnder(t.path));
-				if (nextTabs.length === openTabs.length) return;
-
-				const nextActive =
-					activeTabPath && isUnder(activeTabPath)
-						? (nextTabs[0]?.path ?? null)
-						: activeTabPath;
-
-				set({ openTabs: nextTabs, activeTabPath: nextActive });
-			},
-
-			setTabContent: (path, content) => {
-				set({
-					openTabs: get().openTabs.map((t) =>
-						t.path === path
-							? { ...t, content, savedContent: content, dirty: false }
-							: t
-					),
-				});
-			},
-
-			updateTabContent: (path, content) => {
-				set({
-					openTabs: get().openTabs.map((t) => {
-						if (t.path !== path) return t;
-						const dirty = content !== t.savedContent;
-						if (t.content === content && t.dirty === dirty) return t;
-						return { ...t, content, dirty };
-					}),
-				});
-			},
-
-			markTabSaved: (path, content) => {
-				set({
-					openTabs: get().openTabs.map((t) =>
-						t.path === path
-							? { ...t, content, savedContent: content, dirty: false }
-							: t
-					),
-				});
-			},
-		}),
-		{
-			name: "editor-store",
-			storage: createJSONStorage(() => localStorage),
-			// Clean tabs are persisted lightweight (content is refetched on
-			// open); dirty tabs keep their live content + baseline so
-			// unsaved edits survive a page refresh.
-			partialize: (state) => ({
-				...state,
-				openTabs: state.openTabs.map((t) =>
-					t.dirty
-						? {
-								path: t.path,
-								name: t.name,
-								dirty: true,
-								content: t.content,
-								savedContent: t.savedContent,
-							}
-						: { path: t.path, name: t.name, dirty: false }
-				),
-			}),
+	toggleExpanded: (path) => {
+		let expandedPaths = get().expandedPaths;
+		if (expandedPaths.includes(path)) {
+			expandedPaths = expandedPaths.filter((p) => p !== path);
+		} else {
+			expandedPaths = [...expandedPaths, path];
 		}
-	)
-);
+		set({ expandedPaths });
+	},
+
+	expandPath: (path) => {
+		if (get().expandedPaths.includes(path)) return;
+		const expandedPaths = [...get().expandedPaths, path];
+		set({ expandedPaths });
+	},
+
+	expandMany: (paths) => {
+		const current = get().expandedPaths;
+		const additions = paths.filter((p) => !current.includes(p));
+		if (additions.length === 0) return;
+		set({ expandedPaths: [...current, ...additions] });
+	},
+
+	collapseAll: () => set({ expandedPaths: [] }),
+
+	startCreating: (parentPath, type) => {
+		if (parentPath !== undefined) get().expandPath(parentPath);
+		set({ creatingNode: { parentPath, type }, renamingPath: null });
+	},
+
+	cancelCreating: () => set({ creatingNode: null }),
+
+	startRenaming: (path) => set({ renamingPath: path, creatingNode: null }),
+
+	cancelRenaming: () => set({ renamingPath: null }),
+
+	renamePath: (oldPath, newPath) => {
+		const remap = (p: string) => {
+			if (p === oldPath) return newPath;
+			if (p.startsWith(oldPath + "/") || p.startsWith(oldPath + "\\")) {
+				return newPath + p.slice(oldPath.length);
+			}
+			return p;
+		};
+
+		const { openTabs, activeTabPath, expandedPaths } = get();
+
+		set({
+			openTabs: openTabs.map((t) => {
+				const remapped = remap(t.path);
+				if (remapped === t.path) return t;
+				const name = remapped.split(/[/\\]/).pop() ?? t.name;
+				return { ...t, path: remapped, name };
+			}),
+			activeTabPath: activeTabPath ? remap(activeTabPath) : activeTabPath,
+			expandedPaths: expandedPaths.map(remap),
+		});
+	},
+
+	closeTabsUnder: (prefix) => {
+		const isUnder = (p: string) =>
+			p === prefix ||
+			p.startsWith(prefix + "/") ||
+			p.startsWith(prefix + "\\");
+
+		const { openTabs, activeTabPath } = get();
+		const nextTabs = openTabs.filter((t) => !isUnder(t.path));
+		if (nextTabs.length === openTabs.length) return;
+
+		const nextActive =
+			activeTabPath && isUnder(activeTabPath)
+				? (nextTabs[0]?.path ?? null)
+				: activeTabPath;
+
+		set({ openTabs: nextTabs, activeTabPath: nextActive });
+	},
+
+	setTabContent: (path, content) => {
+		set({
+			openTabs: get().openTabs.map((t) =>
+				t.path === path
+					? { ...t, content, savedContent: content, dirty: false }
+					: t
+			),
+		});
+	},
+
+	updateTabContent: (path, content) => {
+		set({
+			openTabs: get().openTabs.map((t) => {
+				if (t.path !== path) return t;
+				const dirty = content !== t.savedContent;
+				if (t.content === content && t.dirty === dirty) return t;
+				return { ...t, content, dirty };
+			}),
+		});
+	},
+
+	markTabSaved: (path, content) => {
+		set({
+			openTabs: get().openTabs.map((t) =>
+				t.path === path
+					? { ...t, content, savedContent: content, dirty: false }
+					: t
+			),
+		});
+	},
+});
+
+const persistOptions = {
+	name: "editor-store",
+	storage: createJSONStorage(() =>
+		tabPersistenceMode === "local" ? localStorage : sessionStorage
+	),
+	// Clean tabs are persisted lightweight (content is refetched on open);
+	// dirty tabs keep their live content + baseline so unsaved edits
+	// survive a page refresh (unless persistence is disabled entirely).
+	partialize: (state: EditorState) => ({
+		...state,
+		openTabs: state.openTabs.map((t) =>
+			t.dirty
+				? {
+						path: t.path,
+						name: t.name,
+						dirty: true,
+						content: t.content,
+						savedContent: t.savedContent,
+					}
+				: { path: t.path, name: t.name, dirty: false }
+		),
+	}),
+};
+
+export const useEditorStore =
+	tabPersistenceMode === "none"
+		? create<EditorState>()(createEditorStore)
+		: create<EditorState>()(persist(createEditorStore, persistOptions));

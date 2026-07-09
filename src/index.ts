@@ -14,7 +14,10 @@ app.route("/api", api);
 
 const isDev = process.env.NODE_ENV !== "production";
 
-const monacoVsRoot = resolve(import.meta.dir, "../node_modules/monaco-editor/min/vs");
+const monacoVsRoot = resolve(
+	import.meta.dir,
+	"../node_modules/monaco-editor/min/vs"
+);
 
 async function serveMonacoAsset(req: Request): Promise<Response> {
 	const url = new URL(req.url);

@@ -1,20 +1,22 @@
 import type { ReactNode } from "react";
 
 import {
-	ContextMenu as ContextMenuRoot,
 	ContextMenuContent,
 	ContextMenuItem,
+	ContextMenu as ContextMenuRoot,
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "./ui/context-menu";
 
-export type ContextMenuItem = {
-	label: string;
-	onSelect: () => void;
-	disabled?: boolean;
-} | {
-	separator: true;
-};
+export type ContextMenuItem =
+	| {
+			label: string;
+			onSelect: () => void;
+			disabled?: boolean;
+	  }
+	| {
+			separator: true;
+	  };
 
 type ContextMenuProps = {
 	items: ContextMenuItem[];

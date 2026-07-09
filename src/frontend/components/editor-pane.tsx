@@ -18,7 +18,11 @@ export function EditorPane() {
 	const markTabSaved = useEditorStore((s) => s.markTabSaved);
 	const activeTab = openTabs.find((t) => t.path === activeTabPath);
 
-	const { data: fileData, isLoading, isError } = useFileContent(
+	const {
+		data: fileData,
+		isLoading,
+		isError,
+	} = useFileContent(
 		activeTab && activeTab.content === undefined ? activeTab.path : null
 	);
 	const saveFile = useSaveFile();
@@ -136,10 +140,11 @@ export function EditorPane() {
 						}
 						onClick={handleSave}
 					>
-						{saveFile.isPending ?
-							<Loader className="h-3 w-3 animate-spin" /> :
+						{saveFile.isPending ? (
+							<Loader className="h-3 w-3 animate-spin" />
+						) : (
 							<Save className="h-3 w-3" />
-						}
+						)}
 					</Button>
 				</div>
 			</div>
