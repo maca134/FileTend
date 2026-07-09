@@ -6,6 +6,10 @@
 	}
 
 	body {
-		@apply relative m-0 grid min-h-screen min-w-[320px] place-items-center bg-background text-foreground;
+		@apply relative m-0 h-screen w-screen bg-background text-foreground;
+	}
+
+	#root {
+		@apply h-full w-full overflow-hidden;
 	}
 }

@@ -16,7 +16,6 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 |---|---|---|
 | `ROOT_DIR` | *(required)* | Folder to browse/edit |
 | `PORT` | `8080` | |
-| `FOLLOW_SYMLINKS` | `false` | If false, symlinks are listed but not traversed into |
 | `READ_ONLY` | `false` | If true, overrides all `ALLOW_*` flags below to off, server-side |
 | `ALLOW_CREATE` | `true` | New files/folders |
 | `ALLOW_DELETE` | `true` | |
