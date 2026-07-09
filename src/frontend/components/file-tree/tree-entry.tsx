@@ -12,8 +12,8 @@ import { ConfirmDialog } from "../confirm-dialog";
 import { FileIcon } from "../file-icon";
 import { CreateInputRow } from "./create-input-row";
 import { RenameInputRow } from "./rename-input-row";
-import { TreeContextMenu, type TreeContextMenuItem } from "./tree-context-menu";
 import { registerTreeEntryRef } from "./tree-entry-refs";
+import { ContextMenu, type ContextMenuItem } from "../context-menu";
 
 function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const openFile = useEditorStore((s) => s.openFile);
@@ -28,7 +28,7 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const deleteNode = useDeleteNode();
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-	const items: TreeContextMenuItem[] = [
+	const items: ContextMenuItem[] = [
 		{
 			label: "Open",
 			onSelect: () =>
@@ -68,7 +68,7 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 					depth={depth}
 				/>
 			) : (
-				<TreeContextMenu items={items}>
+				<ContextMenu items={items}>
 					<button
 						ref={(el) => registerTreeEntryRef(node.path, el)}
 						type="button"
@@ -91,7 +91,7 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 						<FileIcon type={node.type} path={node.path} />
 						<span className="truncate -mt-1">{node.name}</span>
 					</button>
-				</TreeContextMenu>
+				</ContextMenu>
 			)}
 			<ConfirmDialog
 				open={confirmDeleteOpen}
@@ -150,7 +150,7 @@ function DirectoryTreeEntry({
 	} = useTreeQuery(node.path, isExpanded);
 	const children = childData?.nodes ?? [];
 
-	const items: TreeContextMenuItem[] = [
+	const items: ContextMenuItem[] = [
 		{
 			label: "New File...",
 			onSelect: () => startCreating(node.path, "file"),
@@ -189,7 +189,7 @@ function DirectoryTreeEntry({
 					depth={depth}
 				/>
 			) : (
-				<TreeContextMenu items={items}>
+				<ContextMenu items={items}>
 					<button
 						type="button"
 						onClick={() => toggleExpanded(node.path)}
@@ -248,7 +248,7 @@ function DirectoryTreeEntry({
 							)}
 						/>
 					</button>
-				</TreeContextMenu>
+				</ContextMenu>
 			)}
 			<ConfirmDialog
 				open={confirmDeleteOpen}

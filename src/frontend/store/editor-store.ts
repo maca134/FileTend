@@ -6,6 +6,10 @@ export interface OpenTab {
 	name: string;
 	dirty: boolean;
 	content?: string;
+	// Last known content on disk (from load or save), used as the baseline
+	// to compute `dirty`. Distinct from `content`, which tracks the live
+	// editor buffer so unsaved edits survive a page refresh.
+	savedContent?: string;
 }
 
 export interface CreatingNode {
@@ -21,6 +25,9 @@ interface EditorState {
 	renamingPath: string | null;
 	openFile: (tab: OpenTab) => void;
 	closeTab: (path: string) => void;
+	closeOthers: (path: string) => void;
+	closeToTheRight: (path: string) => void;
+	closeAllTabs: () => void;
 	setActiveTab: (path: string) => void;
 	toggleExpanded: (path: string) => void;
 	expandPath: (path: string) => void;
@@ -36,7 +43,7 @@ interface EditorState {
 	renamePath: (oldPath: string, newPath: string) => void;
 	closeTabsUnder: (prefix: string) => void;
 	setTabContent: (path: string, content: string) => void;
-	setTabDirty: (path: string, dirty: boolean) => void;
+	updateTabContent: (path: string, content: string) => void;
 	markTabSaved: (path: string, content: string) => void;
 }
 
@@ -73,6 +80,33 @@ export const useEditorStore = create<EditorState>()(
 
 				set({ openTabs: nextTabs, activeTabPath: nextActive });
 			},
+
+			closeOthers: (path) => {
+				const { openTabs } = get();
+				const kept = openTabs.filter((t) => t.path === path);
+				if (kept.length === openTabs.length) return;
+				set({ openTabs: kept, activeTabPath: path });
+			},
+
+			closeToTheRight: (path) => {
+				const { openTabs, activeTabPath } = get();
+				const index = openTabs.findIndex((t) => t.path === path);
+				if (index === -1) return;
+
+				const nextTabs = openTabs.slice(0, index + 1);
+				if (nextTabs.length === openTabs.length) return;
+
+				const activeStillOpen = activeTabPath
+					? nextTabs.some((t) => t.path === activeTabPath)
+					: false;
+
+				set({
+					openTabs: nextTabs,
+					activeTabPath: activeStillOpen ? activeTabPath : path,
+				});
+			},
+
+			closeAllTabs: () => set({ openTabs: [], activeTabPath: null }),
 
 			setActiveTab: (path) => set({ activeTabPath: path }),
 
@@ -162,25 +196,30 @@ export const useEditorStore = create<EditorState>()(
 			setTabContent: (path, content) => {
 				set({
 					openTabs: get().openTabs.map((t) =>
-						t.path === path ? { ...t, content, dirty: false } : t
+						t.path === path
+							? { ...t, content, savedContent: content, dirty: false }
+							: t
 					),
 				});
 			},
 
-			setTabDirty: (path, dirty) => {
+			updateTabContent: (path, content) => {
 				set({
-					openTabs: get().openTabs.map((t) =>
-						t.path === path && t.dirty !== dirty
-							? { ...t, dirty }
-							: t
-					),
+					openTabs: get().openTabs.map((t) => {
+						if (t.path !== path) return t;
+						const dirty = content !== t.savedContent;
+						if (t.content === content && t.dirty === dirty) return t;
+						return { ...t, content, dirty };
+					}),
 				});
 			},
 
 			markTabSaved: (path, content) => {
 				set({
 					openTabs: get().openTabs.map((t) =>
-						t.path === path ? { ...t, content, dirty: false } : t
+						t.path === path
+							? { ...t, content, savedContent: content, dirty: false }
+							: t
 					),
 				});
 			},
@@ -188,13 +227,22 @@ export const useEditorStore = create<EditorState>()(
 		{
 			name: "editor-store",
 			storage: createJSONStorage(() => localStorage),
+			// Clean tabs are persisted lightweight (content is refetched on
+			// open); dirty tabs keep their live content + baseline so
+			// unsaved edits survive a page refresh.
 			partialize: (state) => ({
 				...state,
-				openTabs: state.openTabs.map((t) => ({
-					path: t.path,
-					name: t.name,
-					dirty: false,
-				})),
+				openTabs: state.openTabs.map((t) =>
+					t.dirty
+						? {
+								path: t.path,
+								name: t.name,
+								dirty: true,
+								content: t.content,
+								savedContent: t.savedContent,
+							}
+						: { path: t.path, name: t.name, dirty: false }
+				),
 			}),
 		}
 	)

@@ -1,40 +1,45 @@
 import type { ReactNode } from "react";
 
 import {
-	ContextMenu,
+	ContextMenu as ContextMenuRoot,
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
 	ContextMenuTrigger,
-} from "../ui/context-menu";
+} from "./ui/context-menu";
 
-export type TreeContextMenuItem = {
+export type ContextMenuItem = {
 	label: string;
 	onSelect: () => void;
+	disabled?: boolean;
 } | {
 	separator: true;
 };
 
-type TreeContextMenuProps = {
-	items: TreeContextMenuItem[];
+type ContextMenuProps = {
+	items: ContextMenuItem[];
 	children: ReactNode;
 };
 
-export const TreeContextMenu = ({ items, children }: TreeContextMenuProps) => (
+export const ContextMenu = ({ items, children }: ContextMenuProps) => (
 	<>
-		<ContextMenu>
+		<ContextMenuRoot>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-60">
 				{items.map((item, index) =>
 					"separator" in item ? (
 						<ContextMenuSeparator key={index} />
 					) : (
-						<ContextMenuItem key={index} onSelect={item.onSelect}>
+						<ContextMenuItem
+							key={index}
+							onSelect={item.onSelect}
+							disabled={item.disabled}
+						>
 							<div className="ml-6">{item.label}</div>
 						</ContextMenuItem>
 					)
 				)}
 			</ContextMenuContent>
-		</ContextMenu>
+		</ContextMenuRoot>
 	</>
 );
