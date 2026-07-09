@@ -21,9 +21,14 @@ afterAll(() => {
 	removeTempRoot(emptyCwd);
 });
 
-async function authEnabledFor(
+interface FixtureResult {
+	authEnabled: boolean;
+	secretKey: string;
+}
+
+async function runEnvFixture(
 	extraEnv: Record<string, string | undefined>
-): Promise<boolean> {
+): Promise<FixtureResult> {
 	const childEnv: Record<string, string> = {};
 	for (const [key, value] of Object.entries(process.env)) {
 		if (value !== undefined) childEnv[key] = value;
@@ -48,55 +53,84 @@ async function authEnabledFor(
 	if (exitCode !== 0) {
 		throw new Error(`print-env fixture failed: ${stderr}`);
 	}
-	return (JSON.parse(stdout.trim()) as { authEnabled: boolean }).authEnabled;
+	return JSON.parse(stdout.trim()) as FixtureResult;
+}
+
+async function authEnabledFor(
+	extraEnv: Record<string, string | undefined>
+): Promise<boolean> {
+	return (await runEnvFixture(extraEnv)).authEnabled;
 }
 
 describe("env AUTH_ENABLED derivation", () => {
-	test(
-		"defaults to false when no password or override is set",
-		async () => {
-			const authEnabled = await authEnabledFor({
-				AUTH_PASSWORD: undefined,
-				AUTH_ENABLED: undefined,
-			});
-			expect(authEnabled).toBe(false);
-		},
-		10000
-	);
+	test("defaults to false when no password or override is set", async () => {
+		const authEnabled = await authEnabledFor({
+			AUTH_PASSWORD: undefined,
+			AUTH_ENABLED: undefined,
+		});
+		expect(authEnabled).toBe(false);
+	}, 10000);
 
-	test(
-		"auto-enables when AUTH_PASSWORD is set",
-		async () => {
-			const authEnabled = await authEnabledFor({
-				AUTH_PASSWORD: "hunter2",
-				AUTH_ENABLED: undefined,
-			});
-			expect(authEnabled).toBe(true);
-		},
-		10000
-	);
+	test("auto-enables when AUTH_PASSWORD is set", async () => {
+		const authEnabled = await authEnabledFor({
+			AUTH_PASSWORD: "hunter2",
+			AUTH_ENABLED: undefined,
+		});
+		expect(authEnabled).toBe(true);
+	}, 10000);
 
-	test(
-		"an explicit AUTH_ENABLED=false overrides a set AUTH_PASSWORD",
-		async () => {
-			const authEnabled = await authEnabledFor({
-				AUTH_PASSWORD: "hunter2",
-				AUTH_ENABLED: "false",
-			});
-			expect(authEnabled).toBe(false);
-		},
-		10000
-	);
+	test("an explicit AUTH_ENABLED=false overrides a set AUTH_PASSWORD", async () => {
+		const authEnabled = await authEnabledFor({
+			AUTH_PASSWORD: "hunter2",
+			AUTH_ENABLED: "false",
+		});
+		expect(authEnabled).toBe(false);
+	}, 10000);
 
-	test(
-		"an explicit AUTH_ENABLED=true works without AUTH_PASSWORD",
-		async () => {
-			const authEnabled = await authEnabledFor({
-				AUTH_PASSWORD: undefined,
-				AUTH_ENABLED: "true",
-			});
-			expect(authEnabled).toBe(true);
-		},
-		10000
-	);
+	test("an explicit AUTH_ENABLED=true works without AUTH_PASSWORD", async () => {
+		const authEnabled = await authEnabledFor({
+			AUTH_PASSWORD: undefined,
+			AUTH_ENABLED: "true",
+		});
+		expect(authEnabled).toBe(true);
+	}, 10000);
+});
+
+describe("env SECRET_KEY derivation", () => {
+	test("is stable across restarts when AUTH_PASSWORD is unchanged", async () => {
+		const extraEnv = {
+			AUTH_PASSWORD: "hunter2",
+			SECRET_KEY: undefined,
+		};
+		const first = await runEnvFixture(extraEnv);
+		const second = await runEnvFixture(extraEnv);
+		expect(first.secretKey).toBe(second.secretKey);
+	}, 10000);
+
+	test("changes when AUTH_PASSWORD changes", async () => {
+		const a = await runEnvFixture({
+			AUTH_PASSWORD: "hunter2",
+			SECRET_KEY: undefined,
+		});
+		const b = await runEnvFixture({
+			AUTH_PASSWORD: "correct-horse-battery-staple",
+			SECRET_KEY: undefined,
+		});
+		expect(a.secretKey).not.toBe(b.secretKey);
+	}, 10000);
+
+	test("an explicit SECRET_KEY overrides derivation from AUTH_PASSWORD", async () => {
+		const result = await runEnvFixture({
+			AUTH_PASSWORD: "hunter2",
+			SECRET_KEY: "my-explicit-secret",
+		});
+		expect(result.secretKey).toBe("my-explicit-secret");
+	}, 10000);
+
+	test("falls back to a random key when neither SECRET_KEY nor AUTH_PASSWORD is set", async () => {
+		const extraEnv = { AUTH_PASSWORD: undefined, SECRET_KEY: undefined };
+		const first = await runEnvFixture(extraEnv);
+		const second = await runEnvFixture(extraEnv);
+		expect(first.secretKey).not.toBe(second.secretKey);
+	}, 10000);
 });

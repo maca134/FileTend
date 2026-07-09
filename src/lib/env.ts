@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { createHmac, randomBytes } from "crypto";
 import { isAbsolute, resolve } from "path";
 import z from "zod";
 
@@ -20,7 +20,7 @@ const raw = z
 			)
 			.default("/srv"),
 		PORT: z.string().regex(/^\d+$/).transform(Number).default(3000),
-		SECRET_KEY: z.string().default(randomBytes(32).toString("hex")),
+		SECRET_KEY: z.string().optional(),
 		READ_ONLY: zStringBoolean.default(false),
 		ALLOW_CREATE: zStringBoolean.default(true),
 		ALLOW_DELETE: zStringBoolean.default(true),
@@ -80,7 +80,25 @@ if (!raw.success) {
 	throw new Error("Invalid environment variables");
 }
 
+// Deriving the key from the password (rather than persisting a random one)
+// means restarts/redeploys don't invalidate sessions, without needing to
+// write secret material into ROOT_DIR (the only mounted volume, and the
+// same directory the file browser exposes over the API). Rotating the
+// password naturally rotates the derived key too.
+function deriveSecretKeyFromPassword(password: string): string {
+	return createHmac("sha256", password)
+		.update("filetend/session-secret/v1")
+		.digest("hex");
+}
+
+const secretKey =
+	raw.data.SECRET_KEY ??
+	(raw.data.AUTH_PASSWORD
+		? deriveSecretKeyFromPassword(raw.data.AUTH_PASSWORD)
+		: randomBytes(32).toString("hex"));
+
 export const env = {
 	...raw.data,
+	SECRET_KEY: secretKey,
 	AUTH_ENABLED: raw.data.AUTH_ENABLED ?? Boolean(raw.data.AUTH_PASSWORD),
 };

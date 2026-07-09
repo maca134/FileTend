@@ -27,6 +27,7 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 | `DENY_EXTENSIONS` | *(empty)* | Optional deny-list, comma-separated |
 | `AUTH_PASSWORD` | *(empty)* | Single shared password. Empty = no password set |
 | `AUTH_ENABLED` | auto | Defaults to `true` if `AUTH_PASSWORD` is set, else `false`. Can be explicitly overridden (e.g. set `false` to rely on Traefik forwardAuth instead) |
+| `SECRET_KEY` | auto | Signs the session cookie. If unset, derived from `AUTH_PASSWORD` (stable across restarts; rotating the password rotates this too). If `AUTH_PASSWORD` is also unset, falls back to a random per-process key. Can be explicitly overridden. |
 | `BUN_PUBLIC_TAB_PERSISTENCE` | `session` | Frontend-only, inlined at build time. Where unsaved-edit content for open tabs is kept in the browser: `local` (survives browser restarts), `session` (cleared on tab/browser close), or `none` (never written to storage) |
 
 ## API Routes
