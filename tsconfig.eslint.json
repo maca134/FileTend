@@ -4,6 +4,7 @@
 		"src/**/*.ts",
 		"src/**/*.tsx",
 		"test/**/*.ts",
+		"scripts/**/*.ts",
 		"eslint.config.ts",
 		"vite.config.ts",
 		"bun-env.d.ts"

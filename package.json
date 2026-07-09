@@ -47,6 +47,7 @@
 		"globals": "^17.7.0",
 		"prettier": "^3.9.4",
 		"prettier-plugin-tailwindcss": "^0.8.0",
+		"seti-ui": "github:jesseweed/seti-ui",
 		"shadcn": "^4.13.0",
 		"tailwindcss": "^4.1.11",
 		"typescript": "^6.0.3",

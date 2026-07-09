@@ -88,7 +88,9 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 						)}
 						style={{ paddingLeft: 8 + depth * 8 }}
 					>
-						<FileIcon type={node.type} path={node.path} />
+						{node.type === "file" && (
+							<FileIcon type={node.type} path={node.path} />
+						)}
 						<span className="truncate -mt-1">{node.name}</span>
 					</button>
 				</ContextMenu>
@@ -229,22 +231,20 @@ function DirectoryTreeEntry({
 							isActive && "bg-accent",
 							!isActive && "hover:bg-accent/40",
 							isDragOver &&
-								"bg-accent/60 ring-1 ring-inset ring-ring",
+							"bg-accent/60 ring-1 ring-inset ring-ring",
 							"data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-ring"
 						)}
 						style={{ paddingLeft: 8 + depth * 8 }}
 					>
 						<ChevronRight
 							className={cn(
-								"size-3.5 shrink-0 text-muted-foreground transition-transform",
+								"size-5 shrink-0 text-muted-foreground transition-transform",
 								isExpanded && "rotate-90"
 							)}
 						/>
-						<FileIcon
-							type={node.type}
-							path={node.path}
-							expanded={isExpanded}
-						/>
+						{node.type === "file" && (
+							<FileIcon type={node.type} path={node.path} />
+						)}
 						<span className="truncate -mt-1">{node.name}</span>
 						<Dot
 							className={cn(
@@ -290,7 +290,7 @@ function DirectoryTreeEntry({
 							Loading…
 						</div>
 					) : children.length === 0 &&
-					  creatingNode?.parentPath !== node.path ? (
+						creatingNode?.parentPath !== node.path ? (
 						<div
 							className="py-1 text-xs text-muted-foreground italic"
 							style={{ paddingLeft: 8 + (depth + 1) * 14 }}
