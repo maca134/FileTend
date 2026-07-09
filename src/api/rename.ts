@@ -36,7 +36,7 @@ const handler = createHandler(
 		}
 
 		const { path, name } = c.req.valid("json");
-		const oldPath = resolveSafePath(env.ROOT_DIR, path);
+		const oldPath = await resolveSafePath(env.ROOT_DIR, path);
 
 		if (oldPath === resolve(env.ROOT_DIR)) {
 			throw new HTTPException(400, {
@@ -44,7 +44,7 @@ const handler = createHandler(
 			});
 		}
 
-		const newPath = resolveSafePath(dirname(oldPath), name);
+		const newPath = await resolveSafePath(dirname(oldPath), name);
 
 		if (newPath !== oldPath) {
 			const exists = await stat(newPath).then(

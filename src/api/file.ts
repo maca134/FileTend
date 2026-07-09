@@ -1,20 +1,61 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
+import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
 
 const file = {
-	get: createHandler(async (c) => {
-		return c.json({ status: "ok" });
-	}),
-	put: createHandler(async (c) => {
-		return c.json({ status: "ok" });
-	}),
+	get: createHandler(
+		zValidator("query", z.object({ path: z.string() })),
+		async (c) => {
+			const { path } = c.req.valid("query");
+			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+
+			const stats = await stat(fullPath).catch(() => null);
+			if (!stats || !stats.isFile()) {
+				throw new HTTPException(404, { message: "File not found" });
+			}
+
+			assertSizeAllowed(stats.size);
+
+			const content = await readFile(fullPath, "utf-8");
+
+			return c.json({ path: fullPath, content, size: stats.size });
+		}
+	),
+	put: createHandler(
+		zValidator("query", z.object({ path: z.string() })),
+		zValidator("json", z.object({ content: z.string() })),
+		async (c) => {
+			if (env.READ_ONLY) {
+				throw new HTTPException(403, {
+					message: "Editing is disabled (read-only mode)",
+				});
+			}
+
+			const { path } = c.req.valid("query");
+			const { content } = c.req.valid("json");
+
+			assertExtensionAllowed(path);
+			assertSizeAllowed(Buffer.byteLength(content, "utf-8"));
+
+			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+
+			const stats = await stat(fullPath).catch(() => null);
+			if (!stats || !stats.isFile()) {
+				throw new HTTPException(404, { message: "File not found" });
+			}
+
+			await writeFile(fullPath, content, "utf-8");
+
+			return c.json({ status: "ok" });
+		}
+	),
 	post: createHandler(
 		zValidator(
 			"json",
@@ -45,8 +86,8 @@ const file = {
 
 			const { parentPath, name, type } = c.req.valid("json");
 
-			const parentDir = resolveSafePath(env.ROOT_DIR, parentPath);
-			const fullPath = resolveSafePath(parentDir, name);
+			const parentDir = await resolveSafePath(env.ROOT_DIR, parentPath);
+			const fullPath = await resolveSafePath(parentDir, name);
 
 			try {
 				if (type === "directory") {
@@ -87,7 +128,7 @@ const file = {
 			}
 
 			const { path } = c.req.valid("query");
-			const fullPath = resolveSafePath(env.ROOT_DIR, path);
+			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
 
 			if (fullPath === resolve(env.ROOT_DIR)) {
 				throw new HTTPException(400, {

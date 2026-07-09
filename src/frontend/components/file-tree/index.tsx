@@ -1,10 +1,23 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { CopyMinus, FilePlus, FolderPlus, RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import {
+	CopyMinus,
+	FilePlus,
+	FolderPlus,
+	LogOut,
+	RefreshCw,
+	Upload,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAncestorPaths } from "@/lib/path";
-import { useTreeQuery } from "@/lib/queries";
+import {
+	useAuthStatus,
+	useLogout,
+	useTreeQuery,
+	useUploadFile,
+} from "@/lib/queries";
 import { useEditorStore } from "@/store/editor-store";
 
 import { cn } from "../../lib/utils";
@@ -48,11 +61,37 @@ export function FileTree() {
 	const startCreating = useEditorStore((s) => s.startCreating);
 	const collapseAll = useEditorStore((s) => s.collapseAll);
 	const queryClient = useQueryClient();
+	const { data: authStatus } = useAuthStatus();
+	const logout = useLogout();
+	const uploadFile = useUploadFile();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [isDragOver, setIsDragOver] = useState(false);
 
 	useRevealActiveTab();
 
 	const handleRefresh = () => {
 		queryClient.invalidateQueries({ queryKey: ["tree"] });
+	};
+
+	const uploadFiles = (parentPath: string | undefined, files: File[]) => {
+		if (files.length === 0) return;
+		uploadFile.mutate(
+			{ parentPath, files },
+			{
+				onSuccess: () => {
+					toast.success(
+						files.length === 1
+							? `Uploaded ${files[0]!.name}`
+							: `Uploaded ${files.length} files`
+					);
+				},
+				onError: (err) => {
+					toast.error(
+						err instanceof Error ? err.message : "Failed to upload"
+					);
+				},
+			}
+		);
 	};
 
 	return (
@@ -98,9 +137,54 @@ export function FileTree() {
 					>
 						<CopyMinus />
 					</Button>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						className="cursor-pointer"
+						title="Upload"
+						onClick={() => fileInputRef.current?.click()}
+					>
+						<Upload />
+					</Button>
+					<input
+						ref={fileInputRef}
+						type="file"
+						multiple
+						className="hidden"
+						onChange={(e) => {
+							uploadFiles(undefined, Array.from(e.target.files ?? []));
+							e.target.value = "";
+						}}
+					/>
+					{authStatus?.authEnabled && (
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="cursor-pointer"
+							title="Log out"
+							onClick={() => logout.mutate()}
+						>
+							<LogOut />
+						</Button>
+					)}
 				</div>
 			</div>
-			<ScrollArea className="flex-1 overflow-hidden">
+			<ScrollArea
+				className={cn(
+					"flex-1 overflow-hidden",
+					isDragOver && "bg-accent/40"
+				)}
+				onDragOver={(e) => {
+					e.preventDefault();
+					setIsDragOver(true);
+				}}
+				onDragLeave={() => setIsDragOver(false)}
+				onDrop={(e) => {
+					e.preventDefault();
+					setIsDragOver(false);
+					uploadFiles(undefined, Array.from(e.dataTransfer.files));
+				}}
+			>
 				{isLoading && (
 					<div className="p-3 text-sm text-muted-foreground">
 						Loading…

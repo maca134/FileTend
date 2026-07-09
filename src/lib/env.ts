@@ -55,7 +55,7 @@ const raw = z
 				}
 			})
 			.default(10 * 1024 * 1024), // Default to 10MB
-		ALLOW_EXTENSIONS: z
+		ALLOWED_EXTENSIONS: z
 			.string()
 			.transform((value) =>
 				value.split(",").map((ext) => ext.trim().toLowerCase())
@@ -68,7 +68,7 @@ const raw = z
 			)
 			.optional(),
 		AUTH_PASSWORD: z.string().optional(),
-		AUTH_ENABLED: zStringBoolean.default(false),
+		AUTH_ENABLED: zStringBoolean.optional(),
 	})
 	.safeParse({ ...process.env });
 
@@ -80,4 +80,7 @@ if (!raw.success) {
 	throw new Error("Invalid environment variables");
 }
 
-export const env = raw.data;
+export const env = {
+	...raw.data,
+	AUTH_ENABLED: raw.data.AUTH_ENABLED ?? Boolean(raw.data.AUTH_PASSWORD),
+};

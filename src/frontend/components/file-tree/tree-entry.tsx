@@ -1,12 +1,13 @@
 import { ChevronRight, Dot } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { downloadPath } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/editor-store";
 
 import type { FileTreeNode } from "../../../api/tree";
-import { useDeleteNode, useTreeQuery } from "../../lib/queries";
+import { useDeleteNode, useTreeQuery, useUploadFile } from "../../lib/queries";
 import { ConfirmDialog } from "../confirm-dialog";
 import { FileIcon } from "../file-icon";
 import { CreateInputRow } from "./create-input-row";
@@ -133,6 +134,11 @@ function DirectoryTreeEntry({
 	const startCreating = useEditorStore((s) => s.startCreating);
 	const renamingPath = useEditorStore((s) => s.renamingPath);
 	const startRenaming = useEditorStore((s) => s.startRenaming);
+	const closeTabsUnder = useEditorStore((s) => s.closeTabsUnder);
+	const deleteNode = useDeleteNode();
+	const uploadFile = useUploadFile();
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	const [isDragOver, setIsDragOver] = useState(false);
 
 	const isExpanded = expandedPaths.includes(node.path);
 	const isActive = activeTabPath === node.path;
@@ -169,7 +175,7 @@ function DirectoryTreeEntry({
 		},
 		{
 			label: "Delete",
-			onSelect: () => {},
+			onSelect: () => setConfirmDeleteOpen(true),
 		},
 	];
 
@@ -187,10 +193,42 @@ function DirectoryTreeEntry({
 					<button
 						type="button"
 						onClick={() => toggleExpanded(node.path)}
+						onDragOver={(e) => {
+							e.preventDefault();
+							setIsDragOver(true);
+						}}
+						onDragLeave={() => setIsDragOver(false)}
+						onDrop={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							setIsDragOver(false);
+							const files = Array.from(e.dataTransfer.files);
+							if (files.length === 0) return;
+							uploadFile.mutate(
+								{ parentPath: node.path, files },
+								{
+									onSuccess: () => {
+										toast.success(
+											files.length === 1
+												? `Uploaded ${files[0]!.name}`
+												: `Uploaded ${files.length} files`
+										);
+									},
+									onError: (err) => {
+										toast.error(
+											err instanceof Error
+												? err.message
+												: "Failed to upload"
+										);
+									},
+								}
+							);
+						}}
 						className={cn(
 							"flex w-full items-center gap-1 px-2 py-1 text-left cursor-pointer",
 							isActive && "bg-accent",
 							!isActive && "hover:bg-accent/40",
+							isDragOver && "bg-accent/60 ring-1 ring-inset ring-ring",
 							"data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-ring"
 						)}
 						style={{ paddingLeft: 8 + depth * 8 }}
@@ -212,6 +250,25 @@ function DirectoryTreeEntry({
 					</button>
 				</TreeContextMenu>
 			)}
+			<ConfirmDialog
+				open={confirmDeleteOpen}
+				onOpenChange={setConfirmDeleteOpen}
+				title={`Delete ${node.name}?`}
+				description={`This will permanently delete "${node.name}" and everything inside it. This action cannot be undone.`}
+				confirmLabel="Delete"
+				destructive
+				onConfirm={() => {
+					deleteNode.mutate(
+						{ path: node.path },
+						{
+							onSuccess: () => {
+								closeTabsUnder(node.path);
+							},
+						}
+					);
+					setConfirmDeleteOpen(false);
+				}}
+			/>
 			{isExpanded && (
 				<div>
 					{creatingNode?.parentPath === node.path && (

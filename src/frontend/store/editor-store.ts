@@ -34,6 +34,10 @@ interface EditorState {
 	startRenaming: (path: string) => void;
 	cancelRenaming: () => void;
 	renamePath: (oldPath: string, newPath: string) => void;
+	closeTabsUnder: (prefix: string) => void;
+	setTabContent: (path: string, content: string) => void;
+	setTabDirty: (path: string, dirty: boolean) => void;
+	markTabSaved: (path: string, content: string) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -136,10 +140,62 @@ export const useEditorStore = create<EditorState>()(
 					expandedPaths: expandedPaths.map(remap),
 				});
 			},
+
+			closeTabsUnder: (prefix) => {
+				const isUnder = (p: string) =>
+					p === prefix ||
+					p.startsWith(prefix + "/") ||
+					p.startsWith(prefix + "\\");
+
+				const { openTabs, activeTabPath } = get();
+				const nextTabs = openTabs.filter((t) => !isUnder(t.path));
+				if (nextTabs.length === openTabs.length) return;
+
+				const nextActive =
+					activeTabPath && isUnder(activeTabPath)
+						? (nextTabs[0]?.path ?? null)
+						: activeTabPath;
+
+				set({ openTabs: nextTabs, activeTabPath: nextActive });
+			},
+
+			setTabContent: (path, content) => {
+				set({
+					openTabs: get().openTabs.map((t) =>
+						t.path === path ? { ...t, content, dirty: false } : t
+					),
+				});
+			},
+
+			setTabDirty: (path, dirty) => {
+				set({
+					openTabs: get().openTabs.map((t) =>
+						t.path === path && t.dirty !== dirty
+							? { ...t, dirty }
+							: t
+					),
+				});
+			},
+
+			markTabSaved: (path, content) => {
+				set({
+					openTabs: get().openTabs.map((t) =>
+						t.path === path ? { ...t, content, dirty: false } : t
+					),
+				});
+			},
 		}),
 		{
 			name: "editor-store",
 			storage: createJSONStorage(() => localStorage),
+			partialize: (state) => ({
+				...state,
+				openTabs: state.openTabs.map((t) => ({
+					path: t.path,
+					name: t.name,
+					dirty: false,
+				})),
+			}),
 		}
 	)
 );

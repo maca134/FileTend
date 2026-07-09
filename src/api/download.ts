@@ -26,7 +26,7 @@ const handler = createHandler(
 		}
 
 		const { path } = c.req.valid("query");
-		const fullPath = resolveSafePath(env.ROOT_DIR, path);
+		const fullPath = await resolveSafePath(env.ROOT_DIR, path);
 
 		const stats = await stat(fullPath).catch(() => null);
 		if (!stats) {
