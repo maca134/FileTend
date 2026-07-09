@@ -22,11 +22,11 @@ export function App() {
 				</ResizablePanel>
 				<ResizableHandle withHandle />
 				<ResizablePanel>
-					<div className="flex flex-col h-full ">
-						<div className="h-12 flex items-center">
+					<div className="flex flex-col h-full min-h-0">
+						<div className="h-12 flex items-center shrink-0">
 							<TabsBar />
 						</div>
-						<div className="flex-1">
+						<div className="flex-1 min-h-0">
 							<EditorPane />
 						</div>
 					</div>

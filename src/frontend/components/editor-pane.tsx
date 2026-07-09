@@ -1,12 +1,14 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { Loader, RefreshCcw, Save } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { getLanguageForPath } from "@/lib/language";
 import { useFileContent, useSaveFile } from "@/lib/queries";
 import { useEditorStore } from "@/store/editor-store";
-import { Loader, Save } from "lucide-react";
+
+import { ConfirmDialog } from "./confirm-dialog";
 
 export function EditorPane() {
 	const activeTabPath = useEditorStore((s) => s.activeTabPath);
@@ -21,12 +23,32 @@ export function EditorPane() {
 	);
 	const saveFile = useSaveFile();
 	const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+	const [confirmRevertOpen, setConfirmRevertOpen] = useState(false);
 
 	useEffect(() => {
 		if (activeTab && fileData && activeTab.content === undefined) {
 			setTabContent(activeTab.path, fileData.content);
 		}
 	}, [activeTab, fileData, setTabContent]);
+
+	// Monaco's built-in `automaticLayout` polls/observes its own container,
+	// but can get stuck reporting a stale size across a downsize-then-upsize
+	// cycle inside this app's flex/resizable-panel layout. Driving layout()
+	// from our own ResizeObserver on the wrapping element is more reliable.
+	// A callback ref (not a plain useEffect) is required here: the container
+	// only exists in the DOM once a tab is open, so a `useEffect(..., [])`
+	// that runs once on the initial mount (before any tab is open) would
+	// find the ref null and never attach the observer.
+	const editorContainerRef = useCallback((node: HTMLDivElement | null) => {
+		if (!node) return;
+
+		const observer = new ResizeObserver(() => {
+			editorRef.current?.layout();
+		});
+		observer.observe(node);
+
+		return () => observer.disconnect();
+	}, []);
 
 	// Reads fresh state via getState() rather than closing over `activeTab`,
 	// since Monaco's onMount command binding only runs once per mount and
@@ -57,6 +79,24 @@ export function EditorPane() {
 		);
 	};
 
+	const handleRevert = () => {
+		setConfirmRevertOpen(true);
+	};
+
+	// Monaco doesn't re-sync an existing model from a changed `value` prop,
+	// so reverting has to call setValue() on the live editor instance
+	// directly, in addition to resetting the store's buffer.
+	const confirmRevert = () => {
+		const state = useEditorStore.getState();
+		const tab = state.openTabs.find((t) => t.path === state.activeTabPath);
+		if (!tab) return;
+
+		const original = tab.savedContent ?? "";
+		editorRef.current?.setValue(original);
+		updateTabContent(tab.path, original);
+		setConfirmRevertOpen(false);
+	};
+
 	if (!activeTab) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground bg-editor-background">
@@ -81,12 +121,9 @@ export function EditorPane() {
 							activeTab.content === undefined ||
 							saveFile.isPending
 						}
-						onClick={handleSave}
+						onClick={handleRevert}
 					>
-						{saveFile.isPending ?
-							<Loader className="h-3 w-3 animate-spin" /> :
-							<Save className="h-3 w-3" />
-						}
+						<RefreshCcw className="h-3 w-3" />
 					</Button>
 					<Button
 						size="icon-sm"
@@ -106,7 +143,7 @@ export function EditorPane() {
 					</Button>
 				</div>
 			</div>
-			<div className="flex-1 min-h-0">
+			<div ref={editorContainerRef} className="flex-1 min-h-0">
 				{isError && (
 					<div className="flex h-full items-center justify-center text-sm text-destructive">
 						Failed to load file.
@@ -134,13 +171,21 @@ export function EditorPane() {
 							updateTabContent(activeTab.path, value ?? "");
 						}}
 						options={{
-							minimap: { enabled: false },
+							// minimap: { enabled: false },
 							fontSize: 13,
-							automaticLayout: true,
 						}}
 					/>
 				)}
 			</div>
+			<ConfirmDialog
+				open={confirmRevertOpen}
+				onOpenChange={setConfirmRevertOpen}
+				title={`Revert ${activeTab.name}?`}
+				description={`"${activeTab.name}" has unsaved changes that will be lost. This action cannot be undone.`}
+				confirmLabel="Revert"
+				destructive
+				onConfirm={confirmRevert}
+			/>
 		</div>
 	);
 }
