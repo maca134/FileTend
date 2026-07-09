@@ -15,7 +15,7 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 | Variable | Default | Notes |
 |---|---|---|
 | `ROOT_DIR` | *(required)* | Folder to browse/edit |
-| `PORT` | `8080` | |
+| `PORT` | `3000` | |
 | `READ_ONLY` | `false` | If true, overrides all `ALLOW_*` flags below to off, server-side |
 | `ALLOW_CREATE` | `true` | New files/folders |
 | `ALLOW_DELETE` | `true` | |
@@ -40,14 +40,13 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 - `GET /api/tree?path=` — list directory contents
 - `GET /api/file?path=` — read file content
 - `PUT /api/file?path=` — write file content (blocked if `READ_ONLY`)
-- `POST /api/file?path=&type=file|dir` — create file/folder (blocked unless `ALLOW_CREATE`)
+- `POST /api/file` — `{ parentPath, name, type }` → create file/folder (blocked unless `ALLOW_CREATE`)
 - `DELETE /api/file?path=` — delete file/folder (blocked unless `ALLOW_DELETE`)
-- `POST /api/rename` — `{ from, to }` (blocked unless `ALLOW_RENAME`)
+- `POST /api/rename` — `{ path, name }`, renames within the same directory (blocked unless `ALLOW_RENAME`)
 
 **Upload / Download**
-- `POST /api/upload?path=<dir>` — multipart upload (blocked unless `ALLOW_UPLOAD`; respects `MAX_FILE_SIZE`, extension rules)
-- `GET /api/download?path=<file>` — stream single file (blocked unless `ALLOW_DOWNLOAD`)
-- `GET /api/download-zip?path=<dir>` — **open decision**, see below
+- `POST /api/upload?path=<dir>` — multipart upload (blocked unless `ALLOW_UPLOAD`; respects `MAX_FILE_SIZE`, extension rules; rejects with `409` on a filename conflict)
+- `GET /api/download?path=` — stream a single file, or a zipped archive if `path` is a directory (blocked unless `ALLOW_DOWNLOAD`)
 
 ## Security Notes (non-negotiable for v1)
 
@@ -62,11 +61,6 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 - shadcn/ui components needed: dialog (rename/delete/new-file confirm), context-menu (file tree right-click), command (optional command palette), toast (save/error feedback).
 - Upload: drag-and-drop onto tree + toolbar button.
 - Download: context-menu item on files.
-
-## Open Decisions Before/During Build
-
-1. **Folder-as-zip download** (`/api/download-zip`) — needs a zip dependency (Bun has no built-in zip writer, e.g. `archiver` or shelling out to `zip`). In scope for v1, or single-file download only to start?
-2. Upload progress indication for large files — simple progress bar, or minimal/none for v1?
 
 ## Explicitly Out of Scope (v1)
 
