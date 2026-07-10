@@ -128,6 +128,7 @@ export function EditorPane() {
 							saveFile.isPending
 						}
 						onClick={handleRevert}
+						title="Revert changes"
 					>
 						<RefreshCcw className="h-3 w-3" />
 					</Button>
@@ -141,6 +142,7 @@ export function EditorPane() {
 							saveFile.isPending
 						}
 						onClick={handleSave}
+						title="Save changes"
 					>
 						{saveFile.isPending ? (
 							<Loader className="h-3 w-3 animate-spin" />

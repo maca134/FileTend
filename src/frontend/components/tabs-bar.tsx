@@ -155,7 +155,7 @@ const Tab = ({
 						className="flex flex-row cursor-pointer items-center gap-2 max-w-40 truncate"
 					>
 						<FileIcon type="file" path={tab.path} />
-						{tab.name}
+						<div className="truncate">{tab.name}</div>
 					</Button>
 					{!tab.dirty ? (
 						<Button
@@ -168,6 +168,7 @@ const Tab = ({
 								!isActive && "opacity-0 group-hover:opacity-100"
 							)}
 							aria-label={`Close ${tab.name}`}
+							title={`Close ${tab.name}`}
 						>
 							<X className="size-5" />
 						</Button>
@@ -181,6 +182,7 @@ const Tab = ({
 								"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent"
 							)}
 							aria-label={`Close ${tab.name}`}
+							title={`Close ${tab.name}`}
 						>
 							<X className="col-start-1 row-start-1 size-5 opacity-0 transition-opacity group-hover/close:opacity-100" />
 							<div className="col-start-1 row-start-1 h-2 w-2 rounded-full bg-accent-foreground transition-opacity group-hover/close:opacity-0" />
