@@ -1,7 +1,9 @@
 import "./index.css";
 
+import { ExternalLink } from "lucide-react";
 import { useEffect } from "react";
 
+import pkg from "../../package.json";
 import { EditorPane } from "@/components/editor-pane";
 import { FileTree } from "@/components/file-tree";
 import { TabsBar } from "@/components/tabs-bar";
@@ -36,7 +38,7 @@ export function App() {
 	useWarnOnUnsavedClose();
 
 	return (
-		<div className="h-full w-full p-2">
+		<div className="flex flex-col gap-2 h-full w-full p-2">
 			<ResizablePanelGroup orientation="horizontal" className="border">
 				<ResizablePanel
 					defaultSize="300px"
@@ -57,6 +59,21 @@ export function App() {
 					</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>
+			<footer className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+				<span>
+					FileTend{" "}
+					<span className="tabular-nums">v{pkg.version}</span>
+				</span>
+				<a
+					href="https://github.com/maca134/FileTend"
+					target="_blank"
+					rel="noreferrer"
+					className="flex items-center gap-1 hover:text-foreground transition-colors"
+				>
+					GitHub
+					<ExternalLink className="size-3" />
+				</a>
+			</footer>
 		</div>
 	);
 }
