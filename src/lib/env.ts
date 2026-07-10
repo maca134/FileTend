@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from "crypto";
+import { randomBytes, scryptSync } from "crypto";
 import { isAbsolute, resolve } from "path";
 import z from "zod";
 
@@ -96,10 +96,18 @@ if (!raw.success) {
 // write secret material into ROOT_DIR (the only mounted volume, and the
 // same directory the file browser exposes over the API). Rotating the
 // password naturally rotates the derived key too.
+//
+// Uses scrypt (deliberately slow/memory-hard) rather than a single fast
+// HMAC round, so that if SECRET_KEY ever leaks independently of
+// AUTH_PASSWORD (e.g. a log line, `docker inspect`, a backup), it can't be
+// turned into a cheap offline dictionary attack against the password. The
+// salt is a fixed per-app constant rather than a random per-install one,
+// since there's nowhere writable outside ROOT_DIR to persist one -- still a
+// meaningful improvement over no salt at all.
+const SECRET_KEY_SALT = "filetend/session-secret/v1";
+
 function deriveSecretKeyFromPassword(password: string): string {
-	return createHmac("sha256", password)
-		.update("filetend/session-secret/v1")
-		.digest("hex");
+	return scryptSync(password, SECRET_KEY_SALT, 32).toString("hex");
 }
 
 const secretKey =
