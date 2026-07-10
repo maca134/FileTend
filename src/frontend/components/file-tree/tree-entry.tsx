@@ -8,11 +8,7 @@ import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/editor-store";
 
 import type { FileTreeNode } from "../../../api/tree";
-import {
-	useAuthStatus,
-	useDeleteNode,
-	useTreeQuery,
-} from "../../lib/queries";
+import { useAuthStatus, useDeleteNode, useTreeQuery } from "../../lib/queries";
 import { ConfirmDialog } from "../confirm-dialog";
 import { ContextMenu, type ContextMenuItem } from "../context-menu";
 import { FileIcon } from "../file-icon";
@@ -110,7 +106,9 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 						{node.type === "file" && (
 							<FileIcon type={node.type} path={node.path} />
 						)}
-						<span className="truncate min-w-0 -mt-1">{node.name}</span>
+						<span className="truncate min-w-0 -mt-1">
+							{node.name}
+						</span>
 						{node.size !== undefined && (
 							<span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground tabular-nums">
 								{formatBytes(node.size)}

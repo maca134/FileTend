@@ -10,6 +10,7 @@
 		"lint": "eslint --fix",
 		"test": "bun test",
 		"generate-icons": "bun scripts/generate-seti-icons.ts",
+		"prerelease": "bun lint && bun format && bun test",
 		"release": "bun scripts/release.ts"
 	},
 	"dependencies": {

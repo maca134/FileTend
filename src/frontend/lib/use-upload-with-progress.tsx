@@ -61,7 +61,9 @@ export function useUploadWithProgress() {
 					),
 					{ id, duration: 4000 }
 				);
-				queryClient.invalidateQueries({ queryKey: ["tree", parentPath] });
+				queryClient.invalidateQueries({
+					queryKey: ["tree", parentPath],
+				});
 			})
 			.catch((err) => {
 				if (err instanceof UploadCancelledError) {
@@ -76,7 +78,9 @@ export function useUploadWithProgress() {
 						<UploadToast
 							status="error"
 							message={
-								err instanceof Error ? err.message : "Failed to upload"
+								err instanceof Error
+									? err.message
+									: "Failed to upload"
 							}
 						/>
 					),

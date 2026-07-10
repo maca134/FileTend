@@ -111,7 +111,11 @@ const properties = {
 						});
 					}
 					try {
-						await chown(fullPath, uid ?? stats.uid, gid ?? stats.gid);
+						await chown(
+							fullPath,
+							uid ?? stats.uid,
+							gid ?? stats.gid
+						);
 					} catch (chownErr) {
 						// A combined mode+uid/gid request isn't atomic at the
 						// syscall level. If chmod already applied and chown

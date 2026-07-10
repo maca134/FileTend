@@ -10,13 +10,20 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "./ui/button";
 
 export type UploadToastState =
-	| { status: "uploading"; fileCount: number; percent: number; onCancel: () => void }
+	| {
+			status: "uploading";
+			fileCount: number;
+			percent: number;
+			onCancel: () => void;
+	  }
 	| { status: "success"; fileCount: number; fileName: string }
 	| { status: "cancelled" }
 	| { status: "error"; message: string };
 
 function uploadedLabel(fileCount: number, fileName: string) {
-	return fileCount === 1 ? `Uploaded ${fileName}` : `Uploaded ${fileCount} files`;
+	return fileCount === 1
+		? `Uploaded ${fileName}`
+		: `Uploaded ${fileCount} files`;
 }
 
 export function UploadToast(state: UploadToastState) {

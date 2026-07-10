@@ -21,7 +21,10 @@ export function useLogin() {
 			const res = await api.auth.login.$post({ json: input });
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to log in")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to log in"
+					)
 				);
 			}
 			return res.json();
@@ -77,7 +80,10 @@ export function useCreateNode() {
 			});
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to create")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to create"
+					)
 				);
 			}
 			return res.json();
@@ -100,7 +106,10 @@ export function useRenameNode() {
 			});
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to rename")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to rename"
+					)
 				);
 			}
 			return res.json();
@@ -163,7 +172,10 @@ export function useFileContent(path: string | null) {
 			const res = await api.file.$get({ query: { path: path! } });
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to load file")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to load file"
+					)
 				);
 			}
 			return res.json();
@@ -185,7 +197,10 @@ export function useSaveFile() {
 			});
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to save file")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to save file"
+					)
 				);
 			}
 			return res.json();
@@ -203,7 +218,10 @@ export function useDeleteNode() {
 			});
 			if (!res.ok) {
 				throw new Error(
-					await extractErrorMessage(res as Response, "Failed to delete")
+					await extractErrorMessage(
+						res as Response,
+						"Failed to delete"
+					)
 				);
 			}
 			return res.json();
