@@ -23,7 +23,7 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 | `ALLOW_UPLOAD` | `true` | |
 | `ALLOW_DOWNLOAD` | `true` | |
 | `ALLOW_CHMOD` | `true` | Editing permissions from the Properties dialog |
-| `ALLOW_CHOWN` | `false` | Editing owner/group from the Properties dialog. Off by default — usually requires the container to run as root |
+| `ALLOW_CHOWN` | `false` | Editing owner/group from the Properties dialog. Off by default — usually requires the container to run as root. **No uid/gid restriction**: enabling this lets any authenticated user chown any file under `ROOT_DIR` to any uid/gid, including root |
 | `MAX_FILE_SIZE` | `10485760` (10MB) | Cap for editable/uploadable file size |
 | `ALLOWED_EXTENSIONS` | *(empty)* | Optional allow-list, comma-separated. Empty = unrestricted |
 | `DENY_EXTENSIONS` | *(empty)* | Optional deny-list, comma-separated |
