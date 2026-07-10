@@ -116,8 +116,23 @@ const secretKey =
 		? deriveSecretKeyFromPassword(raw.data.AUTH_PASSWORD)
 		: randomBytes(32).toString("hex"));
 
+const authEnabled = raw.data.AUTH_ENABLED ?? Boolean(raw.data.AUTH_PASSWORD);
+
+// AUTH_ENABLED=true with no AUTH_PASSWORD isn't a supported configuration
+// (login would accept any password, and SECRET_KEY would fall back to a
+// random per-restart key, silently reintroducing the "sessions don't
+// survive restarts" bug). The only documented AUTH_ENABLED override is
+// forcing it *off* to defer to a reverse proxy's auth -- fail loudly here
+// rather than let this combination run in a broken, insecure state.
+if (authEnabled && !raw.data.AUTH_PASSWORD) {
+	console.log(
+		"❌ AUTH_ENABLED is true but AUTH_PASSWORD is not set. Set AUTH_PASSWORD, or leave AUTH_ENABLED unset/false to rely on a reverse proxy's auth instead."
+	);
+	throw new Error("AUTH_ENABLED=true requires AUTH_PASSWORD to be set");
+}
+
 export const env = {
 	...raw.data,
 	SECRET_KEY: secretKey,
-	AUTH_ENABLED: raw.data.AUTH_ENABLED ?? Boolean(raw.data.AUTH_PASSWORD),
+	AUTH_ENABLED: authEnabled,
 };

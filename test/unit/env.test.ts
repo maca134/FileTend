@@ -87,20 +87,26 @@ describe("env AUTH_ENABLED derivation", () => {
 		expect(authEnabled).toBe(false);
 	}, 10000);
 
-	test("an explicit AUTH_ENABLED=true works without AUTH_PASSWORD", async () => {
-		const authEnabled = await authEnabledFor({
-			AUTH_PASSWORD: undefined,
-			AUTH_ENABLED: "true",
-		});
-		expect(authEnabled).toBe(true);
-	}, 10000);
-
 	test("an empty-string AUTH_ENABLED is treated as unset, not a parse error", async () => {
 		const authEnabled = await authEnabledFor({
 			AUTH_PASSWORD: "hunter2",
 			AUTH_ENABLED: "",
 		});
 		expect(authEnabled).toBe(true);
+	}, 10000);
+
+	// AUTH_ENABLED=true with no password would previously fall back to a
+	// random per-restart SECRET_KEY (reintroducing the "sessions don't
+	// survive restarts" bug) and a login nobody could ever complete. Both
+	// unset and empty-string AUTH_PASSWORD must fail fast instead.
+	test("fails to boot when AUTH_ENABLED=true is forced with no AUTH_PASSWORD", async () => {
+		await expect(
+			runEnvFixture({ AUTH_PASSWORD: undefined, AUTH_ENABLED: "true" })
+		).rejects.toThrow();
+
+		await expect(
+			runEnvFixture({ AUTH_PASSWORD: "", AUTH_ENABLED: "true" })
+		).rejects.toThrow();
 	}, 10000);
 });
 
