@@ -37,6 +37,16 @@ const handler = createHandler(
 		}
 
 		for (const file of files) {
+			if (
+				file.name === "." ||
+				file.name === ".." ||
+				file.name.includes("/") ||
+				file.name.includes("\\")
+			) {
+				throw new HTTPException(400, {
+					message: `Invalid file name: "${file.name}"`,
+				});
+			}
 			assertExtensionAllowed(file.name);
 			assertSizeAllowed(file.size);
 		}
@@ -49,14 +59,17 @@ const handler = createHandler(
 			try {
 				await writeFile(destPath, buffer, { flag: "wx" });
 			} catch (err) {
-				if (
-					err instanceof Error &&
-					"code" in err &&
-					err.code === "EEXIST"
-				) {
-					throw new HTTPException(409, {
-						message: `"${file.name}" already exists`,
-					});
+				if (err instanceof Error && "code" in err) {
+					if (err.code === "EEXIST") {
+						throw new HTTPException(409, {
+							message: `"${file.name}" already exists`,
+						});
+					}
+					if (err.code === "ENOENT") {
+						throw new HTTPException(400, {
+							message: "Target folder does not exist",
+						});
+					}
 				}
 				throw err;
 			}

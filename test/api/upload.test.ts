@@ -102,6 +102,14 @@ describe("POST /upload", () => {
 		expect(res.status).toBe(415);
 	});
 
+	test("400s on a file name containing a path separator", async () => {
+		const res = await api.request("/upload?path=dest", {
+			method: "POST",
+			body: fileFormData("sub/dir/escape.txt", "x"),
+		});
+		expect(res.status).toBe(400);
+	});
+
 	test("413s on a file over the configured max size", async () => {
 		env.MAX_FILE_SIZE = 4;
 		const res = await api.request("/upload?path=dest", {
