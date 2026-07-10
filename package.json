@@ -9,7 +9,8 @@
 		"format": "prettier --write \"**/*.{ts,tsx,json,html,css}\"",
 		"lint": "eslint --fix",
 		"test": "bun test",
-		"generate-icons": "bun scripts/generate-seti-icons.ts"
+		"generate-icons": "bun scripts/generate-seti-icons.ts",
+		"release": "bun scripts/release.ts"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.8.0",
