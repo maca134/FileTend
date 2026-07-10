@@ -3,7 +3,6 @@ import "./index.css";
 import { ExternalLink } from "lucide-react";
 import { useEffect } from "react";
 
-import pkg from "../../package.json";
 import { EditorPane } from "@/components/editor-pane";
 import { FileTree } from "@/components/file-tree";
 import { TabsBar } from "@/components/tabs-bar";
@@ -13,6 +12,8 @@ import {
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useEditorStore } from "@/store/editor-store";
+
+import pkg from "../../package.json";
 
 function useWarnOnUnsavedClose() {
 	useEffect(() => {
