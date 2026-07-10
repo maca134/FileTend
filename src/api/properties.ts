@@ -9,6 +9,7 @@ import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import { resolveSafePath } from "../lib/paths";
 import { resolveGroupName, resolveUserName } from "../lib/user-lookup";
+import { zErrorHook } from "../lib/validation";
 
 function formatPermissions(mode: number): { octal: string; symbolic: string } {
 	const bits = mode & 0o777;
@@ -38,7 +39,7 @@ function buildPropertiesResponse(fullPath: string, stats: Stats) {
 
 const properties = {
 	get: createHandler(
-		zValidator("query", z.object({ path: z.string() })),
+		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			const { path } = c.req.valid("query");
 			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
@@ -54,7 +55,7 @@ const properties = {
 		}
 	),
 	patch: createHandler(
-		zValidator("query", z.object({ path: z.string() })),
+		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		zValidator(
 			"json",
 			z
@@ -72,7 +73,8 @@ const properties = {
 						message:
 							"At least one of mode, uid, gid must be provided",
 					}
-				)
+				),
+			zErrorHook
 		),
 		async (c) => {
 			if (env.READ_ONLY) {

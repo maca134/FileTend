@@ -8,6 +8,7 @@ import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import log from "../lib/log";
 import { resolveSafePath } from "../lib/paths";
+import { zErrorHook } from "../lib/validation";
 
 export interface FileTreeNode {
 	name: string;
@@ -21,7 +22,8 @@ const handler = createHandler(
 		"query",
 		z.object({
 			path: z.string().optional(),
-		})
+		}),
+		zErrorHook
 	),
 	async (c) => {
 		const requestedPath = c.req.query("path");

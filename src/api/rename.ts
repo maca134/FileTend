@@ -7,6 +7,7 @@ import z from "zod";
 import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import { resolveSafePath } from "../lib/paths";
+import { zErrorHook } from "../lib/validation";
 
 const handler = createHandler(
 	zValidator(
@@ -26,7 +27,8 @@ const handler = createHandler(
 						!value.includes("\\"),
 					{ message: "Invalid name" }
 				),
-		})
+		}),
+		zErrorHook
 	),
 	async (c) => {
 		if (env.READ_ONLY || !env.ALLOW_RENAME) {

@@ -11,6 +11,7 @@ import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import log from "../lib/log";
 import { resolveSafePath } from "../lib/paths";
+import { zErrorHook } from "../lib/validation";
 
 function contentDisposition(filename: string) {
 	const ascii = filename.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "'");
@@ -18,7 +19,7 @@ function contentDisposition(filename: string) {
 }
 
 const handler = createHandler(
-	zValidator("query", z.object({ path: z.string() })),
+	zValidator("query", z.object({ path: z.string() }), zErrorHook),
 	async (c) => {
 		if (!env.ALLOW_DOWNLOAD) {
 			throw new HTTPException(403, {

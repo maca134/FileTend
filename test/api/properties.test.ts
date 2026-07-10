@@ -181,13 +181,17 @@ describe("PATCH /properties", () => {
 		expect(res.status).toBe(400);
 	});
 
-	test("400s on an out-of-range mode", async () => {
+	test("400s on an out-of-range mode with a clean error message", async () => {
 		const res = await api.request(`/properties?path=${targetFile}`, {
 			method: "PATCH",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ mode: 999 }),
 		});
 		expect(res.status).toBe(400);
+		const body = (await res.json()) as { message: string };
+		expect(typeof body.message).toBe("string");
+		expect(body).not.toHaveProperty("success");
+		expect(body).not.toHaveProperty("error");
 	});
 
 	test("400s on an empty body", async () => {

@@ -8,10 +8,11 @@ import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
+import { zErrorHook } from "../lib/validation";
 
 const file = {
 	get: createHandler(
-		zValidator("query", z.object({ path: z.string() })),
+		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			const { path } = c.req.valid("query");
 			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
@@ -29,8 +30,8 @@ const file = {
 		}
 	),
 	put: createHandler(
-		zValidator("query", z.object({ path: z.string() })),
-		zValidator("json", z.object({ content: z.string() })),
+		zValidator("query", z.object({ path: z.string() }), zErrorHook),
+		zValidator("json", z.object({ content: z.string() }), zErrorHook),
 		async (c) => {
 			if (env.READ_ONLY) {
 				throw new HTTPException(403, {
@@ -75,7 +76,8 @@ const file = {
 						{ message: "Invalid name" }
 					),
 				type: z.enum(["file", "directory"]),
-			})
+			}),
+			zErrorHook
 		),
 		async (c) => {
 			if (env.READ_ONLY || !env.ALLOW_CREATE) {
@@ -119,7 +121,7 @@ const file = {
 		}
 	),
 	delete: createHandler(
-		zValidator("query", z.object({ path: z.string() })),
+		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			if (env.READ_ONLY || !env.ALLOW_DELETE) {
 				throw new HTTPException(403, {

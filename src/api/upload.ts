@@ -7,9 +7,14 @@ import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
+import { zErrorHook } from "../lib/validation";
 
 const handler = createHandler(
-	zValidator("query", z.object({ path: z.string().optional() })),
+	zValidator(
+		"query",
+		z.object({ path: z.string().optional() }),
+		zErrorHook
+	),
 	async (c) => {
 		if (env.READ_ONLY || !env.ALLOW_UPLOAD) {
 			throw new HTTPException(403, {
