@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 
+import log from "../lib/log";
 import { auth } from "../middleware/auth";
 import download from "./download";
 import file from "./file";
@@ -28,6 +30,19 @@ const api = app
 	.post("/rename", rename)
 	.post("/upload", upload)
 	.get("/download", download);
+
+api.onError((err, c) => {
+	if (err instanceof HTTPException) {
+		return err.getResponse();
+	}
+
+	log.error(
+		`Unhandled error in ${c.req.method} ${c.req.path}: ${
+			err instanceof Error ? (err.stack ?? err.message) : String(err)
+		}`
+	);
+	return c.json({ message: "Internal server error" }, 500);
+});
 
 export default api;
 
