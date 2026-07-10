@@ -25,7 +25,6 @@ services:
             - "3000:3000"
         volumes:
             - /path/to/your/folder:/srv
-        restart: unless-stopped
 ```
 
 Point `volumes:` at the folder you want to browse/edit — it's mounted into the container at `/srv`. No `.env` is needed for this: the container already runs as the baked-in `bun` user (uid 1000), and auth is off by default.
