@@ -38,13 +38,16 @@
 		"zustand": "^5.0.14"
 	},
 	"devDependencies": {
+		"@babel/core": "^8.0.1",
 		"@eslint/js": "^10.0.1",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.2",
 		"@types/archiver": "^8.0.0",
 		"@types/bun": "latest",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"babel-plugin-react-compiler": "^1.0.0",
 		"eslint": "^10.6.0",
+		"eslint-plugin-react-compiler": "^19.1.0-rc.2",
 		"eslint-plugin-react-hooks": "^7.1.1",
 		"eslint-plugin-react-refresh": "^0.5.3",
 		"globals": "^17.7.0",
