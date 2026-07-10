@@ -33,7 +33,13 @@ const api = app
 
 api.onError((err, c) => {
 	if (err instanceof HTTPException) {
-		return err.getResponse();
+		// HTTPException.getResponse() falls back to a plain-text body when no
+		// explicit `res` was supplied (true for every throw in this codebase),
+		// but the frontend's extractErrorMessage() expects JSON `{ message }`
+		// -- returning that shape directly here is what actually delivers
+		// these messages to the UI instead of always falling back to a
+		// generic error string.
+		return c.json({ message: err.message }, err.status);
 	}
 
 	log.error(
