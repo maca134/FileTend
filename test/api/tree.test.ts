@@ -65,4 +65,9 @@ describe("GET /tree", () => {
 		const res = await api.request("/tree?path=../../etc");
 		expect(res.status).toBe(400);
 	});
+
+	test("404s when the directory does not exist", async () => {
+		const res = await api.request("/tree?path=does-not-exist");
+		expect(res.status).toBe(404);
+	});
 });

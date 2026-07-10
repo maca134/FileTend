@@ -31,7 +31,10 @@ const handler = createHandler(
 			`Resolved full path: ${requestedPath || "(root)"} -> ${fullPath}`
 		);
 
-		const stats = await stat(fullPath);
+		const stats = await stat(fullPath).catch(() => null);
+		if (!stats) {
+			throw new HTTPException(404, { message: "Folder not found" });
+		}
 
 		if (!stats.isDirectory()) {
 			log.error(`Path is not a directory: ${fullPath}`);
@@ -40,7 +43,12 @@ const handler = createHandler(
 			});
 		}
 
-		const entries = await readdir(fullPath, { withFileTypes: true });
+		const entries = await readdir(fullPath, { withFileTypes: true }).catch(
+			() => null
+		);
+		if (!entries) {
+			throw new HTTPException(404, { message: "Folder not found" });
+		}
 
 		const nodes = entries
 			.map(
