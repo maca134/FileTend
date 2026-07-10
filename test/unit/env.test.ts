@@ -94,6 +94,14 @@ describe("env AUTH_ENABLED derivation", () => {
 		});
 		expect(authEnabled).toBe(true);
 	}, 10000);
+
+	test("an empty-string AUTH_ENABLED is treated as unset, not a parse error", async () => {
+		const authEnabled = await authEnabledFor({
+			AUTH_PASSWORD: "hunter2",
+			AUTH_ENABLED: "",
+		});
+		expect(authEnabled).toBe(true);
+	}, 10000);
 });
 
 describe("env SECRET_KEY derivation", () => {
@@ -132,5 +140,13 @@ describe("env SECRET_KEY derivation", () => {
 		const first = await runEnvFixture(extraEnv);
 		const second = await runEnvFixture(extraEnv);
 		expect(first.secretKey).not.toBe(second.secretKey);
+	}, 10000);
+
+	test("an empty-string SECRET_KEY is treated as unset, falling back to derivation", async () => {
+		const result = await runEnvFixture({
+			AUTH_PASSWORD: "hunter2",
+			SECRET_KEY: "",
+		});
+		expect(result.secretKey).not.toBe("");
 	}, 10000);
 });

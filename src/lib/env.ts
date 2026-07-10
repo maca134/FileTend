@@ -72,7 +72,16 @@ const raw = z
 		AUTH_PASSWORD: z.string().optional(),
 		AUTH_ENABLED: zStringBoolean.optional(),
 	})
-	.safeParse({ ...process.env });
+	// An env var set to the empty string (e.g. `- AUTH_PASSWORD=${AUTH_PASSWORD:-}`
+	// in a compose file, when AUTH_PASSWORD isn't set in .env) is functionally
+	// "unset" for every field above, but a defined "" is not undefined, so
+	// optional() alone wouldn't catch it. Strip empties before parsing so
+	// unset-via-empty-string behaves the same as truly absent.
+	.safeParse(
+		Object.fromEntries(
+			Object.entries(process.env).filter(([, value]) => value !== "")
+		)
+	);
 
 if (!raw.success) {
 	console.log(
