@@ -15,20 +15,22 @@ Single container, single port, no database. Point it at a folder and go.
 
 ## Quick start (Docker Compose)
 
-```bash
-git clone https://github.com/maca134/FileTend.git
-cd FileTend
-cp .env.example .env
-```
-
-Edit `.env` — at minimum set `PUID`/`PGID` to match the owner of the folder you're about to mount (run `id -u` / `id -g` on the host), and optionally `AUTH_PASSWORD` to require a login.
-
-Edit the `volumes:` mapping in `compose.yaml` to point at the folder you want to browse/edit — it's mounted into the container at `/srv`:
-
 ```yaml
-volumes:
-    - /path/to/your/folder:/srv
+services:
+    filetend:
+        image: ghcr.io/maca134/filetend:latest
+        container_name: filetend
+		restart: unless-stopped
+        ports:
+            - "3000:3000"
+        volumes:
+            - /path/to/your/folder:/srv
+        restart: unless-stopped
 ```
+
+Point `volumes:` at the folder you want to browse/edit — it's mounted into the container at `/srv`. No `.env` is needed for this: the container already runs as the baked-in `bun` user (uid 1000), and auth is off by default.
+
+To customize — match `PUID`/`PGID` to the host folder's owner (run `id -u` / `id -g` on the host), require a login with `AUTH_PASSWORD`, or change any other setting — copy [`.env.example`](.env.example) to `.env`, add `env_file: .env` to the service above, and (if overriding `PUID`/`PGID`) add `user: "${PUID:-1000}:${PGID:-1000}"`.
 
 Then:
 
@@ -78,14 +80,3 @@ bun run format   # prettier
 `ROOT_DIR` defaults to `/srv`, which won't exist outside a container — set it in a local `.env` (copy `.env.example`) to point at a real folder for local development.
 
 File icons (`src/frontend/lib/seti-icons.generated.ts`) are generated from the vendored [seti-ui](https://github.com/jesseweed/seti-ui) package. Re-run `bun run generate-icons` after a `seti-ui` upgrade.
-
-## API reference and security model
-
-See [`Spec.md`](Spec.md) for the full route list, request/response shapes, and the security invariants every write route follows (path containment, `ALLOW_*`/`READ_ONLY` enforcement, etc).
-
-## Out of scope (v1)
-
-- Multi-root / multiple mounted folders (single `ROOT_DIR` only)
-- Git integration
-- Real-time collaborative editing
-- Extensions/plugins system
