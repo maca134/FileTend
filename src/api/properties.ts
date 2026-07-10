@@ -110,7 +110,20 @@ const properties = {
 							message: "Changing ownership is disabled",
 						});
 					}
-					await chown(fullPath, uid ?? stats.uid, gid ?? stats.gid);
+					try {
+						await chown(fullPath, uid ?? stats.uid, gid ?? stats.gid);
+					} catch (chownErr) {
+						// A combined mode+uid/gid request isn't atomic at the
+						// syscall level. If chmod already applied and chown
+						// then fails, restore the original mode rather than
+						// leaving a partial mutation silently in place.
+						if (mode !== undefined) {
+							await chmod(fullPath, stats.mode & 0o777).catch(
+								() => {}
+							);
+						}
+						throw chownErr;
+					}
 				}
 			} catch (err) {
 				if (err instanceof HTTPException) throw err;

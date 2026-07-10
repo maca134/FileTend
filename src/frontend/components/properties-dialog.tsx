@@ -107,7 +107,10 @@ export function PropertiesDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const { data, isLoading, isError } = usePropertiesQuery(path, open);
+	const { data, isLoading, isError, refetch } = usePropertiesQuery(
+		path,
+		open
+	);
 	const updateProperties = useUpdatePropertiesMutation();
 	const ancestors = getAncestorPaths(path);
 	const location = ancestors[ancestors.length - 1] ?? "/";
@@ -173,6 +176,17 @@ export function PropertiesDialog({
 						? err.message
 						: "Failed to update properties"
 				);
+				// mode and uid/gid are applied server-side as two separate
+				// operations, so a failure may mean one of them already
+				// took effect. Refetch and resync local state to the
+				// server's actual values rather than leaving this dialog
+				// showing edits that only partially applied.
+				void refetch().then((result) => {
+					if (!result.data) return;
+					setLocalMode(parseInt(result.data.permissions.octal, 8));
+					setLocalUid(result.data.owner.uid);
+					setLocalGid(result.data.group.gid);
+				});
 			},
 		});
 	}
