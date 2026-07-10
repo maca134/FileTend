@@ -9,6 +9,7 @@ import z from "zod";
 
 import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
+import log from "../lib/log";
 import { resolveSafePath } from "../lib/paths";
 
 function contentDisposition(filename: string) {
@@ -39,6 +40,13 @@ const handler = createHandler(
 
 		if (stats.isDirectory()) {
 			const archive = new ZipArchive({ zlib: { level: 9 } });
+			// Must be attached before finalize() (or any other async work) --
+			// an 'error' event with no listener crashes the process. Attaching
+			// it here rather than relying on finalize() being synchronous
+			// keeps this safe against future refactors.
+			archive.on("error", (err) => {
+				log.error(`Error zipping ${fullPath}: ${err.message}`);
+			});
 			archive.directory(fullPath, name);
 			archive.finalize();
 
