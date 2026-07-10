@@ -217,16 +217,19 @@ export function TabsBar() {
 	}
 
 	return (
-		<div className="flex h-full items-stretch overflow-x-auto">
-			{openTabs.map((tab) => (
-				<Tab
-					key={tab.path}
-					tab={tab}
-					activeTabPath={activeTabPath}
-					setActiveTab={setActiveTab}
-					closeTab={closeTab}
-				/>
-			))}
-		</div>
+		<>
+			<div className="flex h-full items-stretch overflow-x-auto">
+				{openTabs.map((tab) => (
+					<Tab
+						key={tab.path}
+						tab={tab}
+						activeTabPath={activeTabPath}
+						setActiveTab={setActiveTab}
+						closeTab={closeTab}
+					/>
+				))}
+			</div>
+			<div className="flex-1 h-full border-b" />
+		</>
 	);
 }
