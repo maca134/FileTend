@@ -45,6 +45,14 @@ const server = serve({
 		"/monaco-vs/*": serveMonacoAsset,
 		"/*": index,
 	},
+	// MAX_FILE_SIZE is enforced per-file (assertSizeAllowed, in upload.ts and
+	// file.ts). Uploads batch multiple files into a single multipart request,
+	// so capping the request body at exactly MAX_FILE_SIZE would reject a
+	// batch of several individually-valid files. This is just a resource-
+	// exhaustion safety net against an absurdly large request body, not the
+	// real size limit -- generous multiple of the per-file limit rather than
+	// an unrelated fixed constant, so it scales with the configured limit.
+	maxRequestBodySize: env.MAX_FILE_SIZE * 20,
 	development: isDev
 		? {
 				hmr: true,

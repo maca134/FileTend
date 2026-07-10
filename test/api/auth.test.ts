@@ -46,7 +46,7 @@ describe("auth flow", () => {
 			authEnabled: boolean;
 			authed: boolean;
 		};
-		expect(body).toEqual({ authEnabled: true, authed: false });
+		expect(body).toMatchObject({ authEnabled: true, authed: false });
 	});
 
 	test("status reports authed:true when auth is disabled", async () => {
@@ -56,7 +56,32 @@ describe("auth flow", () => {
 			authEnabled: boolean;
 			authed: boolean;
 		};
-		expect(body).toEqual({ authEnabled: false, authed: true });
+		expect(body).toMatchObject({ authEnabled: false, authed: true });
+	});
+
+	test("status reports permissions derived from env flags", async () => {
+		env.ALLOW_DELETE = false;
+		const res = await api.request("/auth/status");
+		const body = (await res.json()) as {
+			permissions: Record<string, boolean>;
+		};
+		expect(body.permissions.canDelete).toBe(false);
+		expect(body.permissions.canCreate).toBe(true);
+	});
+
+	test("READ_ONLY forces every write-capability flag to false", async () => {
+		env.READ_ONLY = true;
+		const res = await api.request("/auth/status");
+		const body = (await res.json()) as {
+			permissions: Record<string, boolean>;
+		};
+		expect(body.permissions.canCreate).toBe(false);
+		expect(body.permissions.canDelete).toBe(false);
+		expect(body.permissions.canRename).toBe(false);
+		expect(body.permissions.canUpload).toBe(false);
+		expect(body.permissions.canChmod).toBe(false);
+		expect(body.permissions.canChown).toBe(false);
+		expect(body.permissions.canDownload).toBe(true);
 	});
 
 	test("a protected route passes through when auth is disabled", async () => {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { formatBytes } from "../lib/format";
 import { getAncestorPaths } from "../lib/path";
 import {
+	useAuthStatus,
 	usePropertiesQuery,
 	useUpdatePropertiesMutation,
 } from "../lib/queries";
@@ -42,9 +43,11 @@ const PERMISSION_BITS = [
 function PermissionsEditor({
 	mode,
 	onChange,
+	disabled,
 }: {
 	mode: number;
 	onChange: (mode: number) => void;
+	disabled?: boolean;
 }) {
 	return (
 		<div className="flex flex-col gap-1">
@@ -71,6 +74,7 @@ function PermissionsEditor({
 							>
 								<Checkbox
 									checked={(mode & mask) !== 0}
+									disabled={disabled}
 									onCheckedChange={(checked) =>
 										onChange(
 											checked === true
@@ -112,6 +116,8 @@ export function PropertiesDialog({
 		open
 	);
 	const updateProperties = useUpdatePropertiesMutation();
+	const { data: authStatus } = useAuthStatus();
+	const permissions = authStatus?.permissions;
 	const ancestors = getAncestorPaths(path);
 	const location = ancestors[ancestors.length - 1] ?? "/";
 
@@ -253,6 +259,11 @@ export function PropertiesDialog({
 								<PermissionsEditor
 									mode={localMode}
 									onChange={setLocalMode}
+									disabled={
+										permissions
+											? !permissions.canChmod
+											: false
+									}
 								/>
 							</div>
 
@@ -266,6 +277,11 @@ export function PropertiesDialog({
 										min={0}
 										className="h-7 w-24"
 										value={localUid}
+										disabled={
+											permissions
+												? !permissions.canChown
+												: false
+										}
 										onChange={(e) =>
 											setLocalUid(
 												e.target.value === ""
@@ -292,6 +308,11 @@ export function PropertiesDialog({
 										min={0}
 										className="h-7 w-24"
 										value={localGid}
+										disabled={
+											permissions
+												? !permissions.canChown
+												: false
+										}
 										onChange={(e) =>
 											setLocalGid(
 												e.target.value === ""

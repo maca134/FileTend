@@ -49,6 +49,17 @@ describe("GET /tree", () => {
 		]);
 	});
 
+	test("includes each file's size but omits size for directories", async () => {
+		const res = await api.request("/tree");
+		const body = (await res.json()) as {
+			nodes: { name: string; type: string; size?: number }[];
+		};
+		const file = body.nodes.find((n) => n.name === "a.txt");
+		const dir = body.nodes.find((n) => n.name === "a-dir");
+		expect(file?.size).toBe(1);
+		expect(dir?.size).toBeUndefined();
+	});
+
 	test("lists a nested directory via the path query param", async () => {
 		const res = await api.request("/tree?path=z-dir");
 		expect(res.status).toBe(200);

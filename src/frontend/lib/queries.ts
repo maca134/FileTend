@@ -161,10 +161,18 @@ export function useFileContent(path: string | null) {
 		queryKey: ["file", path],
 		queryFn: async () => {
 			const res = await api.file.$get({ query: { path: path! } });
-			if (!res.ok) throw new Error("Failed to load file");
+			if (!res.ok) {
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to load file")
+				);
+			}
 			return res.json();
 		},
 		enabled: !!path,
+		// Every failure mode here (413 too large, 415 binary, 404, 403) is
+		// deterministic -- retrying can't turn a "this file is binary" error
+		// into a success, it just delays the placeholder showing up.
+		retry: false,
 	});
 }
 
@@ -181,41 +189,6 @@ export function useSaveFile() {
 				);
 			}
 			return res.json();
-		},
-	});
-}
-
-export function useUploadFile() {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: async (input: {
-			parentPath: string | undefined;
-			files: File[];
-		}) => {
-			const formData = new FormData();
-			for (const file of input.files) {
-				formData.append("files", file);
-			}
-
-			const query =
-				input.parentPath !== undefined
-					? `?path=${encodeURIComponent(input.parentPath)}`
-					: "";
-
-			const res = await fetch(`/api/upload${query}`, {
-				method: "POST",
-				body: formData,
-			});
-			if (!res.ok) {
-				throw new Error(await extractErrorMessage(res, "Failed to upload"));
-			}
-			return res.json();
-		},
-		onSuccess: (_data, variables) => {
-			queryClient.invalidateQueries({
-				queryKey: ["tree", variables.parentPath],
-			});
 		},
 	});
 }

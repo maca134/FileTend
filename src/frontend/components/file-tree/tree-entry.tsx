@@ -1,13 +1,18 @@
-import { ChevronRight, Dot } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { downloadPath } from "@/lib/api";
+import { formatBytes } from "@/lib/format";
+import { useUploadWithProgress } from "@/lib/use-upload-with-progress";
 import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/editor-store";
 
 import type { FileTreeNode } from "../../../api/tree";
-import { useDeleteNode, useTreeQuery, useUploadFile } from "../../lib/queries";
+import {
+	useAuthStatus,
+	useDeleteNode,
+	useTreeQuery,
+} from "../../lib/queries";
 import { ConfirmDialog } from "../confirm-dialog";
 import { ContextMenu, type ContextMenuItem } from "../context-menu";
 import { FileIcon } from "../file-icon";
@@ -29,6 +34,8 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const deleteNode = useDeleteNode();
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
+	const { data: authStatus } = useAuthStatus();
+	const permissions = authStatus?.permissions;
 
 	const items: ContextMenuItem[] = [
 		{
@@ -46,6 +53,7 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 		{
 			label: "Download",
 			onSelect: () => downloadPath(node.path),
+			disabled: permissions ? !permissions.canDownload : false,
 		},
 		{
 			separator: true,
@@ -53,10 +61,12 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 		{
 			label: "Rename...",
 			onSelect: () => startRenaming(node.path),
+			disabled: permissions ? !permissions.canRename : false,
 		},
 		{
 			label: "Delete",
 			onSelect: () => setConfirmDeleteOpen(true),
+			disabled: permissions ? !permissions.canDelete : false,
 		},
 		{
 			separator: true,
@@ -100,7 +110,12 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 						{node.type === "file" && (
 							<FileIcon type={node.type} path={node.path} />
 						)}
-						<span className="truncate -mt-1">{node.name}</span>
+						<span className="truncate min-w-0 -mt-1">{node.name}</span>
+						{node.size !== undefined && (
+							<span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground tabular-nums">
+								{formatBytes(node.size)}
+							</span>
+						)}
 					</button>
 				</ContextMenu>
 			)}
@@ -154,10 +169,12 @@ function DirectoryTreeEntry({
 	const startRenaming = useEditorStore((s) => s.startRenaming);
 	const closeTabsUnder = useEditorStore((s) => s.closeTabsUnder);
 	const deleteNode = useDeleteNode();
-	const uploadFile = useUploadFile();
+	const uploadFiles = useUploadWithProgress();
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const { data: authStatus } = useAuthStatus();
+	const permissions = authStatus?.permissions;
 
 	const isExpanded = expandedPaths.includes(node.path);
 	const isActive = activeTabPath === node.path;
@@ -173,10 +190,12 @@ function DirectoryTreeEntry({
 		{
 			label: "New File...",
 			onSelect: () => startCreating(node.path, "file"),
+			disabled: permissions ? !permissions.canCreate : false,
 		},
 		{
 			label: "New Folder...",
 			onSelect: () => startCreating(node.path, "directory"),
+			disabled: permissions ? !permissions.canCreate : false,
 		},
 		{
 			separator: true,
@@ -184,6 +203,7 @@ function DirectoryTreeEntry({
 		{
 			label: "Download",
 			onSelect: () => downloadPath(node.path),
+			disabled: permissions ? !permissions.canDownload : false,
 		},
 		{
 			separator: true,
@@ -191,10 +211,12 @@ function DirectoryTreeEntry({
 		{
 			label: "Rename...",
 			onSelect: () => startRenaming(node.path),
+			disabled: permissions ? !permissions.canRename : false,
 		},
 		{
 			label: "Delete",
 			onSelect: () => setConfirmDeleteOpen(true),
+			disabled: permissions ? !permissions.canDelete : false,
 		},
 		{
 			separator: true,
@@ -221,6 +243,7 @@ function DirectoryTreeEntry({
 						onClick={() => toggleExpanded(node.path)}
 						onDragOver={(e) => {
 							e.preventDefault();
+							if (permissions?.canUpload === false) return;
 							setIsDragOver(true);
 						}}
 						onDragLeave={() => setIsDragOver(false)}
@@ -228,27 +251,10 @@ function DirectoryTreeEntry({
 							e.preventDefault();
 							e.stopPropagation();
 							setIsDragOver(false);
+							if (permissions?.canUpload === false) return;
 							const files = Array.from(e.dataTransfer.files);
 							if (files.length === 0) return;
-							uploadFile.mutate(
-								{ parentPath: node.path, files },
-								{
-									onSuccess: () => {
-										toast.success(
-											files.length === 1
-												? `Uploaded ${files[0]!.name}`
-												: `Uploaded ${files.length} files`
-										);
-									},
-									onError: (err) => {
-										toast.error(
-											err instanceof Error
-												? err.message
-												: "Failed to upload"
-										);
-									},
-								}
-							);
+							uploadFiles(node.path, files);
 						}}
 						className={cn(
 							"flex w-full items-center gap-1 px-2 py-1 text-left cursor-pointer",
@@ -270,9 +276,9 @@ function DirectoryTreeEntry({
 							<FileIcon type={node.type} path={node.path} />
 						)}
 						<span className="truncate -mt-1">{node.name}</span>
-						<Dot
+						<RefreshCw
 							className={cn(
-								"size-3 shrink-0 text-primary opacity-0 transition-opacity",
+								"size-3 shrink-0 text-primary opacity-0 transition-opacity animate-spin",
 								isFetching && "opacity-100"
 							)}
 						/>

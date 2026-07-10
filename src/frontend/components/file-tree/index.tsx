@@ -8,16 +8,11 @@ import {
 	Upload,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAncestorPaths } from "@/lib/path";
-import {
-	useAuthStatus,
-	useLogout,
-	useTreeQuery,
-	useUploadFile,
-} from "@/lib/queries";
+import { useAuthStatus, useLogout, useTreeQuery } from "@/lib/queries";
+import { useUploadWithProgress } from "@/lib/use-upload-with-progress";
 import { useEditorStore } from "@/store/editor-store";
 
 import { cn } from "../../lib/utils";
@@ -62,8 +57,9 @@ export function FileTree() {
 	const collapseAll = useEditorStore((s) => s.collapseAll);
 	const queryClient = useQueryClient();
 	const { data: authStatus } = useAuthStatus();
+	const permissions = authStatus?.permissions;
 	const logout = useLogout();
-	const uploadFile = useUploadFile();
+	const uploadFiles = useUploadWithProgress();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragOver, setIsDragOver] = useState(false);
 	const isCreatingAtRoot =
@@ -73,27 +69,6 @@ export function FileTree() {
 
 	const handleRefresh = () => {
 		queryClient.invalidateQueries({ queryKey: ["tree"] });
-	};
-
-	const uploadFiles = (parentPath: string | undefined, files: File[]) => {
-		if (files.length === 0) return;
-		uploadFile.mutate(
-			{ parentPath, files },
-			{
-				onSuccess: () => {
-					toast.success(
-						files.length === 1
-							? `Uploaded ${files[0]!.name}`
-							: `Uploaded ${files.length} files`
-					);
-				},
-				onError: (err) => {
-					toast.error(
-						err instanceof Error ? err.message : "Failed to upload"
-					);
-				},
-			}
-		);
 	};
 
 	return (
@@ -107,7 +82,12 @@ export function FileTree() {
 						variant="ghost"
 						size="icon-sm"
 						className="cursor-pointer"
-						title="New File"
+						title={
+							permissions?.canCreate === false
+								? "New File (disabled)"
+								: "New File"
+						}
+						disabled={permissions ? !permissions.canCreate : false}
 						onClick={() => startCreating(undefined, "file")}
 					>
 						<FilePlus />
@@ -116,7 +96,12 @@ export function FileTree() {
 						variant="ghost"
 						size="icon-sm"
 						className="cursor-pointer"
-						title="New Folder"
+						title={
+							permissions?.canCreate === false
+								? "New Folder (disabled)"
+								: "New Folder"
+						}
+						disabled={permissions ? !permissions.canCreate : false}
 						onClick={() => startCreating(undefined, "directory")}
 					>
 						<FolderPlus />
@@ -143,7 +128,12 @@ export function FileTree() {
 						variant="ghost"
 						size="icon-sm"
 						className="cursor-pointer"
-						title="Upload"
+						title={
+							permissions?.canUpload === false
+								? "Upload (disabled)"
+								: "Upload"
+						}
+						disabled={permissions ? !permissions.canUpload : false}
 						onClick={() => fileInputRef.current?.click()}
 					>
 						<Upload />
@@ -181,12 +171,14 @@ export function FileTree() {
 				)}
 				onDragOver={(e) => {
 					e.preventDefault();
+					if (permissions?.canUpload === false) return;
 					setIsDragOver(true);
 				}}
 				onDragLeave={() => setIsDragOver(false)}
 				onDrop={(e) => {
 					e.preventDefault();
 					setIsDragOver(false);
+					if (permissions?.canUpload === false) return;
 					uploadFiles(undefined, Array.from(e.dataTransfer.files));
 				}}
 			>

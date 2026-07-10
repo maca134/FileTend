@@ -15,6 +15,7 @@ export interface FileTreeNode {
 	path: string;
 	type: "file" | "directory";
 	children: FileTreeNode[];
+	size?: number;
 }
 
 const handler = createHandler(
@@ -52,22 +53,32 @@ const handler = createHandler(
 			throw new HTTPException(404, { message: "Folder not found" });
 		}
 
-		const nodes = entries
-			.map(
-				(entry) =>
-					({
-						name: entry.name,
-						path: resolve(fullPath, entry.name),
-						type: entry.isDirectory() ? "directory" : "file",
-						children: [] as FileTreeNode[],
-					}) as FileTreeNode
-			)
-			.sort((a, b) => {
-				if (a.type === b.type) {
-					return a.name.localeCompare(b.name);
-				}
-				return a.type === "directory" ? -1 : 1;
-			});
+		const nodes = await Promise.all(
+			entries.map(async (entry) => {
+				const entryPath = resolve(fullPath, entry.name);
+				const isDirectory = entry.isDirectory();
+				const size = isDirectory
+					? undefined
+					: await stat(entryPath)
+							.then((s) => s.size)
+							.catch(() => undefined);
+
+				return {
+					name: entry.name,
+					path: entryPath,
+					type: isDirectory ? "directory" : "file",
+					children: [] as FileTreeNode[],
+					size,
+				} as FileTreeNode;
+			})
+		);
+
+		nodes.sort((a, b) => {
+			if (a.type === b.type) {
+				return a.name.localeCompare(b.name);
+			}
+			return a.type === "directory" ? -1 : 1;
+		});
 
 		return c.json({ nodes });
 	}

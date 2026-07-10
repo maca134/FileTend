@@ -50,6 +50,21 @@ describe("GET/PUT /file", () => {
 		expect(res.status).toBe(404);
 	});
 
+	test("rejects reading a binary file with 415 and a JSON message", async () => {
+		writeFileSync(join(root, "blob.bin"), Buffer.from([1, 2, 0, 3, 4]));
+		const res = await api.request("/file?path=blob.bin");
+		expect(res.status).toBe(415);
+		expect(res.headers.get("content-type")).toContain("application/json");
+		const body = (await res.json()) as { message: string };
+		expect(body.message).toBe("Cannot open binary file");
+	});
+
+	test("rejects reading a file over the configured max size with 413", async () => {
+		env.MAX_FILE_SIZE = 4;
+		const res = await api.request("/file?path=hello.txt");
+		expect(res.status).toBe(413);
+	});
+
 	test("writes new content and it round-trips", async () => {
 		const putRes = await api.request("/file?path=hello.txt", {
 			method: "PUT",

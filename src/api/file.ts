@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import z from "zod";
 
+import { isBinaryBuffer } from "../lib/binary";
 import { env } from "../lib/env";
 import { createHandler } from "../lib/handler";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
@@ -24,7 +25,13 @@ const file = {
 
 			assertSizeAllowed(stats.size);
 
-			const content = await readFile(fullPath, "utf-8");
+			const buffer = await readFile(fullPath);
+			if (isBinaryBuffer(buffer)) {
+				throw new HTTPException(415, {
+					message: "Cannot open binary file",
+				});
+			}
+			const content = buffer.toString("utf-8");
 
 			return c.json({ path: fullPath, content, size: stats.size });
 		}

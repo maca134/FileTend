@@ -1,9 +1,10 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { Loader, RefreshCcw, Save } from "lucide-react";
+import { Download, Loader, RefreshCcw, Save } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { downloadPath } from "@/lib/api";
 import { getLanguageForPath } from "@/lib/language";
 import { useFileContent, useSaveFile } from "@/lib/queries";
 import { useEditorStore } from "@/store/editor-store";
@@ -22,6 +23,7 @@ export function EditorPane() {
 		data: fileData,
 		isLoading,
 		isError,
+		error,
 	} = useFileContent(
 		activeTab && activeTab.content === undefined ? activeTab.path : null
 	);
@@ -150,8 +152,21 @@ export function EditorPane() {
 			</div>
 			<div ref={editorContainerRef} className="flex-1 min-h-0">
 				{isError && (
-					<div className="flex h-full items-center justify-center text-sm text-destructive">
-						Failed to load file.
+					<div className="flex h-full flex-col items-center justify-center gap-3 text-sm">
+						<span className="px-4 text-center text-destructive">
+							{error instanceof Error
+								? error.message
+								: "Cannot preview this file."}
+						</span>
+						<Button
+							size="sm"
+							variant="secondary"
+							className="cursor-pointer"
+							onClick={() => downloadPath(activeTab.path)}
+						>
+							<Download className="h-3 w-3" />
+							Download
+						</Button>
 					</div>
 				)}
 				{!isError && (isLoading || activeTab.content === undefined) && (
