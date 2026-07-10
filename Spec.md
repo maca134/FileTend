@@ -14,7 +14,7 @@ A simple, self-hosted, dockerized web app for editing configs, docker-compose fi
 
 | Variable | Default | Notes |
 |---|---|---|
-| `ROOT_DIR` | *(required)* | Folder to browse/edit |
+| `ROOT_DIR` | `/srv` | Folder to browse/edit |
 | `PORT` | `3000` | |
 | `READ_ONLY` | `false` | If true, overrides all `ALLOW_*` flags below to off, server-side |
 | `ALLOW_CREATE` | `true` | New files/folders |

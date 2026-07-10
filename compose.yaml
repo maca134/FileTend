@@ -14,6 +14,23 @@ services:
         user: "${PUID:-1000}:${PGID:-1000}"
         environment:
             - NODE_ENV=production
+            - LOG_LEVEL=${LOG_LEVEL:-INFO}
+            - ROOT_DIR=${ROOT_DIR:-/srv}
+            - PORT=${PORT:-3000}
+            - SECRET_KEY=${SECRET_KEY:-}
+            - READ_ONLY=${READ_ONLY:-false}
+            - ALLOW_CREATE=${ALLOW_CREATE:-true}
+            - ALLOW_DELETE=${ALLOW_DELETE:-true}
+            - ALLOW_RENAME=${ALLOW_RENAME:-true}
+            - ALLOW_UPLOAD=${ALLOW_UPLOAD:-true}
+            - ALLOW_DOWNLOAD=${ALLOW_DOWNLOAD:-true}
+            - ALLOW_CHMOD=${ALLOW_CHMOD:-true}
+            - ALLOW_CHOWN=${ALLOW_CHOWN:-false}
+            - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10MB}
+            - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-}
+            - DENY_EXTENSIONS=${DENY_EXTENSIONS:-}
+            - AUTH_PASSWORD=${AUTH_PASSWORD:-}
+            - AUTH_ENABLED=${AUTH_ENABLED:-}
 networks:
     default:
         name: filetend
