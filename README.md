@@ -77,6 +77,8 @@ bun run format   # prettier
 
 `ROOT_DIR` defaults to `/srv`, which won't exist outside a container — set it in a local `.env` (copy `.env.example`) to point at a real folder for local development.
 
+File icons (`src/frontend/lib/seti-icons.generated.ts`) are generated from the vendored [seti-ui](https://github.com/jesseweed/seti-ui) package. Re-run `bun run generate-icons` after a `seti-ui` upgrade.
+
 ## API reference and security model
 
 See [`Spec.md`](Spec.md) for the full route list, request/response shapes, and the security invariants every write route follows (path containment, `ALLOW_*`/`READ_ONLY` enforcement, etc).

@@ -8,7 +8,8 @@
 		"start": "NODE_ENV=production bun src/index.ts",
 		"format": "prettier --write \"**/*.{ts,tsx,json,html,css}\"",
 		"lint": "eslint --fix",
-		"test": "bun test"
+		"test": "bun test",
+		"generate-icons": "bun scripts/generate-seti-icons.ts"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.8.0",
