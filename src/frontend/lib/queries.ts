@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "./api";
+import { api, extractErrorMessage } from "./api";
 
 export function useAuthStatus() {
 	return useQuery({
@@ -20,8 +20,9 @@ export function useLogin() {
 		mutationFn: async (input: { password: string }) => {
 			const res = await api.auth.login.$post({ json: input });
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to log in");
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to log in")
+				);
 			}
 			return res.json();
 		},
@@ -75,8 +76,9 @@ export function useCreateNode() {
 				json: input,
 			});
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to create");
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to create")
+				);
 			}
 			return res.json();
 		},
@@ -97,8 +99,9 @@ export function useRenameNode() {
 				json: input,
 			});
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to rename");
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to rename")
+				);
 			}
 			return res.json();
 		},
@@ -136,8 +139,12 @@ export function useUpdatePropertiesMutation() {
 				json,
 			});
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to update properties");
+				throw new Error(
+					await extractErrorMessage(
+						res as Response,
+						"Failed to update properties"
+					)
+				);
 			}
 			return res.json();
 		},
@@ -169,8 +176,9 @@ export function useSaveFile() {
 				json: { content: input.content },
 			});
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to save file");
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to save file")
+				);
 			}
 			return res.json();
 		},
@@ -200,8 +208,7 @@ export function useUploadFile() {
 				body: formData,
 			});
 			if (!res.ok) {
-				const message = await res.text().catch(() => "");
-				throw new Error(message || "Failed to upload");
+				throw new Error(await extractErrorMessage(res, "Failed to upload"));
 			}
 			return res.json();
 		},
@@ -222,8 +229,9 @@ export function useDeleteNode() {
 				query: input,
 			});
 			if (!res.ok) {
-				const message = await (res as Response).text().catch(() => "");
-				throw new Error(message || "Failed to delete");
+				throw new Error(
+					await extractErrorMessage(res as Response, "Failed to delete")
+				);
 			}
 			return res.json();
 		},
