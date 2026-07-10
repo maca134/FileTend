@@ -33,8 +33,13 @@ const handler = createHandler(
 		}
 
 		const body = await c.req.parseBody({ all: true });
+		// With `all: true`, a field with multiple values (multi-file upload
+		// under the same "files" field) comes back as an array rather than a
+		// single File -- both shapes need flattening here.
 		const files = Object.values(body).flatMap((value) =>
-			value instanceof File ? [value] : []
+			(Array.isArray(value) ? value : [value]).filter(
+				(v): v is File => v instanceof File
+			)
 		);
 
 		if (files.length === 0) {

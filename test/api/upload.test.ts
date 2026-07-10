@@ -51,6 +51,28 @@ describe("POST /upload", () => {
 		expect(body.content).toBe("content");
 	});
 
+	test("uploads multiple files from a single batched request", async () => {
+		const form = new FormData();
+		form.append("files", new File(["one"], "multi-a.txt"));
+		form.append("files", new File(["two"], "multi-b.txt"));
+
+		const res = await api.request("/upload?path=dest", {
+			method: "POST",
+			body: form,
+		});
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { files: { name: string }[] };
+		expect(body.files.map((f) => f.name).sort()).toEqual([
+			"multi-a.txt",
+			"multi-b.txt",
+		]);
+
+		const getA = await api.request("/file?path=dest/multi-a.txt");
+		expect((await getA.json()).content).toBe("one");
+		const getB = await api.request("/file?path=dest/multi-b.txt");
+		expect((await getB.json()).content).toBe("two");
+	});
+
 	test("409s when a file with the same name already exists", async () => {
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
