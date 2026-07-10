@@ -11,6 +11,7 @@ services:
             - ./src:/srv
         restart: unless-stopped
         command: bun start
+        user: "${PUID:-1000}:${PGID:-1000}"
         environment:
             - NODE_ENV=production
 networks:

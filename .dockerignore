@@ -4,3 +4,10 @@
 .github
 .gitignore
 node_modules
+Dockerfile
+compose.yaml
+test
+test-files
+coverage
+*.md
+api.http
