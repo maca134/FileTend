@@ -20,7 +20,7 @@ services:
     filetend:
         image: ghcr.io/maca134/filetend:latest
         container_name: filetend
-		restart: unless-stopped
+        restart: unless-stopped
         ports:
             - "3000:3000"
         volumes:
