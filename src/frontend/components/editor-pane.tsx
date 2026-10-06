@@ -14,7 +14,6 @@ import { ConfirmDialog } from "./confirm-dialog";
 export function EditorPane() {
 	const activeTabPath = useEditorStore((s) => s.activeTabPath);
 	const openTabs = useEditorStore((s) => s.openTabs);
-	const setTabContent = useEditorStore((s) => s.setTabContent);
 	const updateTabContent = useEditorStore((s) => s.updateTabContent);
 	const markTabSaved = useEditorStore((s) => s.markTabSaved);
 	const activeTab = openTabs.find((t) => t.path === activeTabPath);
@@ -33,9 +32,9 @@ export function EditorPane() {
 
 	useEffect(() => {
 		if (activeTab && fileData && activeTab.content === undefined) {
-			setTabContent(activeTab.path, fileData.content);
+			markTabSaved(activeTab.path, fileData.content);
 		}
-	}, [activeTab, fileData, setTabContent]);
+	}, [activeTab, fileData, markTabSaved]);
 
 	// Monaco's built-in `automaticLayout` polls/observes its own container,
 	// but can get stuck reporting a stale size across a downsize-then-upsize

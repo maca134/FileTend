@@ -30,7 +30,6 @@ interface EditorState {
 	closeAllTabs: () => void;
 	setActiveTab: (path: string) => void;
 	toggleExpanded: (path: string) => void;
-	expandPath: (path: string) => void;
 	expandMany: (paths: string[]) => void;
 	collapseAll: () => void;
 	startCreating: (
@@ -42,7 +41,6 @@ interface EditorState {
 	cancelRenaming: () => void;
 	renamePath: (oldPath: string, newPath: string) => void;
 	closeTabsUnder: (prefix: string) => void;
-	setTabContent: (path: string, content: string) => void;
 	updateTabContent: (path: string, content: string) => void;
 	markTabSaved: (path: string, content: string) => void;
 }
@@ -137,19 +135,12 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 	setActiveTab: (path) => set({ activeTabPath: path }),
 
 	toggleExpanded: (path) => {
-		let expandedPaths = get().expandedPaths;
-		if (expandedPaths.includes(path)) {
-			expandedPaths = expandedPaths.filter((p) => p !== path);
-		} else {
-			expandedPaths = [...expandedPaths, path];
-		}
-		set({ expandedPaths });
-	},
-
-	expandPath: (path) => {
-		if (get().expandedPaths.includes(path)) return;
-		const expandedPaths = [...get().expandedPaths, path];
-		set({ expandedPaths });
+		const { expandedPaths } = get();
+		set({
+			expandedPaths: expandedPaths.includes(path)
+				? expandedPaths.filter((p) => p !== path)
+				: [...expandedPaths, path],
+		});
 	},
 
 	expandMany: (paths) => {
@@ -162,7 +153,7 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 	collapseAll: () => set({ expandedPaths: [] }),
 
 	startCreating: (parentPath, type) => {
-		if (parentPath !== undefined) get().expandPath(parentPath);
+		if (parentPath !== undefined) get().expandMany([parentPath]);
 		set({ creatingNode: { parentPath, type }, renamingPath: null });
 	},
 
@@ -211,16 +202,6 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 				: activeTabPath;
 
 		set({ openTabs: nextTabs, activeTabPath: nextActive });
-	},
-
-	setTabContent: (path, content) => {
-		set({
-			openTabs: get().openTabs.map((t) =>
-				t.path === path
-					? { ...t, content, savedContent: content, dirty: false }
-					: t
-			),
-		});
 	},
 
 	updateTabContent: (path, content) => {
