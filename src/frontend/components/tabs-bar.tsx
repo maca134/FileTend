@@ -10,66 +10,41 @@ import { ContextMenu, type ContextMenuItem } from "./context-menu";
 import { FileIcon } from "./file-icon";
 import { Button } from "./ui/button";
 
-type CloseScope = "single" | "others" | "right" | "all";
-
-const SCOPE_LABEL: Record<CloseScope, string> = {
-	single: "Close",
-	others: "Close Others",
-	right: "Close to the Right",
-	all: "Close All",
-};
+type CloseScope = "Close" | "Close Others" | "Close to the Right" | "Close All";
 
 const Tab = ({
 	tab,
 	activeTabPath,
 	setActiveTab,
-	closeTab,
 }: {
 	tab: OpenTab;
 	activeTabPath: string | null;
 	setActiveTab: (path: string) => void;
-	closeTab: (path: string) => void;
 }) => {
 	const openTabs = useEditorStore((s) => s.openTabs);
-	const closeOthers = useEditorStore((s) => s.closeOthers);
-	const closeToTheRight = useEditorStore((s) => s.closeToTheRight);
-	const closeAllTabs = useEditorStore((s) => s.closeAllTabs);
+	const closeTabs = useEditorStore((s) => s.closeTabs);
 
 	const isActive = tab.path === activeTabPath;
 	const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
-	const [pendingScope, setPendingScope] = useState<CloseScope>("single");
+	const [pendingScope, setPendingScope] = useState<CloseScope>("Close");
 
 	const tabIndex = openTabs.findIndex((t) => t.path === tab.path);
 
 	const getTabsInScope = (scope: CloseScope): OpenTab[] => {
 		switch (scope) {
-			case "single":
+			case "Close":
 				return [tab];
-			case "others":
+			case "Close Others":
 				return openTabs.filter((t) => t.path !== tab.path);
-			case "right":
+			case "Close to the Right":
 				return openTabs.slice(tabIndex + 1);
-			case "all":
+			case "Close All":
 				return openTabs;
 		}
 	};
 
-	const runScope = (scope: CloseScope) => {
-		switch (scope) {
-			case "single":
-				closeTab(tab.path);
-				break;
-			case "others":
-				closeOthers(tab.path);
-				break;
-			case "right":
-				closeToTheRight(tab.path);
-				break;
-			case "all":
-				closeAllTabs();
-				break;
-		}
-	};
+	const runScope = (scope: CloseScope) =>
+		closeTabs(getTabsInScope(scope).map((t) => t.path));
 
 	const requestClose = (scope: CloseScope) => {
 		const scopedTabs = getTabsInScope(scope);
@@ -83,39 +58,27 @@ const Tab = ({
 		}
 	};
 
-	const handleClose = () => requestClose("single");
-
 	const dirtyPendingTabs = getTabsInScope(pendingScope).filter(
 		(t) => t.dirty
 	);
 	const confirmTitle =
-		pendingScope === "single"
-			? `Close ${tab.name}?`
-			: `${SCOPE_LABEL[pendingScope]}?`;
+		pendingScope === "Close" ? `Close ${tab.name}?` : `${pendingScope}?`;
 	const confirmDescription =
 		dirtyPendingTabs.length === 1
 			? `"${dirtyPendingTabs[0]!.name}" has unsaved changes that will be lost. This action cannot be undone.`
 			: `${dirtyPendingTabs.length} files have unsaved changes that will be lost. This action cannot be undone.`;
 
+	const scopeItem = (label: CloseScope, disabled = false) => ({
+		label,
+		onSelect: () => requestClose(label),
+		disabled,
+	});
+
 	const items: ContextMenuItem[] = [
-		{
-			label: "Close",
-			onSelect: () => requestClose("single"),
-		},
-		{
-			label: "Close Others",
-			onSelect: () => requestClose("others"),
-			disabled: openTabs.length <= 1,
-		},
-		{
-			label: "Close to the Right",
-			onSelect: () => requestClose("right"),
-			disabled: tabIndex === openTabs.length - 1,
-		},
-		{
-			label: "Close All",
-			onSelect: () => requestClose("all"),
-		},
+		scopeItem("Close"),
+		scopeItem("Close Others", openTabs.length <= 1),
+		scopeItem("Close to the Right", tabIndex === openTabs.length - 1),
+		scopeItem("Close All"),
 		{
 			separator: true,
 		},
@@ -157,37 +120,31 @@ const Tab = ({
 						<FileIcon type="file" path={tab.path} />
 						<div className="truncate">{tab.name}</div>
 					</Button>
-					{!tab.dirty ? (
-						<Button
-							type="button"
-							variant={"invisible"}
-							size={"icon-xs"}
-							onClick={handleClose}
+					<Button
+						type="button"
+						variant={"invisible"}
+						size={"icon-xs"}
+						onClick={() => requestClose("Close")}
+						className={cn(
+							"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent",
+							!tab.dirty &&
+								!isActive &&
+								"opacity-0 group-hover:opacity-100"
+						)}
+						aria-label={`Close ${tab.name}`}
+						title={`Close ${tab.name}`}
+					>
+						<X
 							className={cn(
-								"cursor-pointer mr-2 hover:bg-accent",
-								!isActive && "opacity-0 group-hover:opacity-100"
+								"col-start-1 row-start-1 size-5",
+								tab.dirty &&
+									"opacity-0 transition-opacity group-hover/close:opacity-100"
 							)}
-							aria-label={`Close ${tab.name}`}
-							title={`Close ${tab.name}`}
-						>
-							<X className="size-5" />
-						</Button>
-					) : (
-						<Button
-							type="button"
-							variant={"invisible"}
-							size={"icon-xs"}
-							onClick={handleClose}
-							className={cn(
-								"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent"
-							)}
-							aria-label={`Close ${tab.name}`}
-							title={`Close ${tab.name}`}
-						>
-							<X className="col-start-1 row-start-1 size-5 opacity-0 transition-opacity group-hover/close:opacity-100" />
+						/>
+						{tab.dirty && (
 							<div className="col-start-1 row-start-1 h-2 w-2 rounded-full bg-accent-foreground transition-opacity group-hover/close:opacity-0" />
-						</Button>
-					)}
+						)}
+					</Button>
 				</div>
 			</ContextMenu>
 			<ConfirmDialog
@@ -210,7 +167,6 @@ export function TabsBar() {
 	const openTabs = useEditorStore((s) => s.openTabs);
 	const activeTabPath = useEditorStore((s) => s.activeTabPath);
 	const setActiveTab = useEditorStore((s) => s.setActiveTab);
-	const closeTab = useEditorStore((s) => s.closeTab);
 
 	if (openTabs.length === 0) {
 		return <div className="h-full" />;
@@ -225,7 +181,6 @@ export function TabsBar() {
 						tab={tab}
 						activeTabPath={activeTabPath}
 						setActiveTab={setActiveTab}
-						closeTab={closeTab}
 					/>
 				))}
 			</div>

@@ -24,10 +24,7 @@ interface EditorState {
 	creatingNode: CreatingNode | null;
 	renamingPath: string | null;
 	openFile: (tab: OpenTab) => void;
-	closeTab: (path: string) => void;
-	closeOthers: (path: string) => void;
-	closeToTheRight: (path: string) => void;
-	closeAllTabs: () => void;
+	closeTabs: (paths: string[]) => void;
 	setActiveTab: (path: string) => void;
 	toggleExpanded: (path: string) => void;
 	expandMany: (paths: string[]) => void;
@@ -91,46 +88,24 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 		});
 	},
 
-	closeTab: (path) => {
+	// If the active tab is closed, activate the nearest remaining tab to its
+	// left (or the first remaining tab if none is left of it).
+	closeTabs: (paths) => {
 		const { openTabs, activeTabPath } = get();
-		const index = openTabs.findIndex((t) => t.path === path);
-		if (index === -1) return;
+		const nextTabs = openTabs.filter((t) => !paths.includes(t.path));
+		if (nextTabs.length === openTabs.length) return;
 
-		const nextTabs = openTabs.filter((t) => t.path !== path);
-		const nextActive =
-			activeTabPath !== path
-				? activeTabPath
-				: ((nextTabs[index - 1] ?? nextTabs[index])?.path ?? null);
+		let nextActive = activeTabPath;
+		if (activeTabPath && paths.includes(activeTabPath)) {
+			const index = openTabs.findIndex((t) => t.path === activeTabPath);
+			const left = openTabs
+				.slice(0, index)
+				.findLast((t) => !paths.includes(t.path));
+			nextActive = (left ?? nextTabs[0])?.path ?? null;
+		}
 
 		set({ openTabs: nextTabs, activeTabPath: nextActive });
 	},
-
-	closeOthers: (path) => {
-		const { openTabs } = get();
-		const kept = openTabs.filter((t) => t.path === path);
-		if (kept.length === openTabs.length) return;
-		set({ openTabs: kept, activeTabPath: path });
-	},
-
-	closeToTheRight: (path) => {
-		const { openTabs, activeTabPath } = get();
-		const index = openTabs.findIndex((t) => t.path === path);
-		if (index === -1) return;
-
-		const nextTabs = openTabs.slice(0, index + 1);
-		if (nextTabs.length === openTabs.length) return;
-
-		const activeStillOpen = activeTabPath
-			? nextTabs.some((t) => t.path === activeTabPath)
-			: false;
-
-		set({
-			openTabs: nextTabs,
-			activeTabPath: activeStillOpen ? activeTabPath : path,
-		});
-	},
-
-	closeAllTabs: () => set({ openTabs: [], activeTabPath: null }),
 
 	setActiveTab: (path) => set({ activeTabPath: path }),
 
@@ -187,21 +162,16 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 	},
 
 	closeTabsUnder: (prefix) => {
-		const isUnder = (p: string) =>
-			p === prefix ||
-			p.startsWith(prefix + "/") ||
-			p.startsWith(prefix + "\\");
-
-		const { openTabs, activeTabPath } = get();
-		const nextTabs = openTabs.filter((t) => !isUnder(t.path));
-		if (nextTabs.length === openTabs.length) return;
-
-		const nextActive =
-			activeTabPath && isUnder(activeTabPath)
-				? (nextTabs[0]?.path ?? null)
-				: activeTabPath;
-
-		set({ openTabs: nextTabs, activeTabPath: nextActive });
+		get().closeTabs(
+			get()
+				.openTabs.map((t) => t.path)
+				.filter(
+					(p) =>
+						p === prefix ||
+						p.startsWith(prefix + "/") ||
+						p.startsWith(prefix + "\\")
+				)
+		);
 	},
 
 	updateTabContent: (path, content) => {
