@@ -7,9 +7,9 @@ import { basename } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { resolveSafePath } from "../lib/paths";
+import { resolveSafePath, statOr404 } from "../lib/paths";
 import { resolveGroupName, resolveUserName } from "../lib/user-lookup";
-import { zErrorHook } from "../lib/validation";
+import { pathQuery, zErrorHook } from "../lib/validation";
 
 function formatPermissions(mode: number): { octal: string; symbolic: string } {
 	const bits = mode & 0o777;
@@ -40,24 +40,14 @@ function buildPropertiesResponse(fullPath: string, stats: Stats) {
 const { createHandlers } = createFactory();
 
 const properties = {
-	get: createHandlers(
-		zValidator("query", z.object({ path: z.string() }), zErrorHook),
-		async (c) => {
-			const { path } = c.req.valid("query");
-			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
-
-			const stats = await stat(fullPath).catch(() => null);
-			if (!stats) {
-				throw new HTTPException(404, {
-					message: "File or folder not found",
-				});
-			}
-
-			return c.json(buildPropertiesResponse(fullPath, stats));
-		}
-	),
+	get: createHandlers(pathQuery, async (c) => {
+		const { path } = c.req.valid("query");
+		const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+		const stats = await statOr404(fullPath);
+		return c.json(buildPropertiesResponse(fullPath, stats));
+	}),
 	patch: createHandlers(
-		zValidator("query", z.object({ path: z.string() }), zErrorHook),
+		pathQuery,
 		zValidator(
 			"json",
 			z
@@ -88,13 +78,7 @@ const properties = {
 			const { path } = c.req.valid("query");
 			const { mode, uid, gid } = c.req.valid("json");
 			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
-
-			const stats = await stat(fullPath).catch(() => null);
-			if (!stats) {
-				throw new HTTPException(404, {
-					message: "File or folder not found",
-				});
-			}
+			const stats = await statOr404(fullPath);
 
 			try {
 				if (mode !== undefined) {
@@ -133,11 +117,7 @@ const properties = {
 				}
 			} catch (err) {
 				if (err instanceof HTTPException) throw err;
-				if (
-					err instanceof Error &&
-					"code" in err &&
-					err.code === "EPERM"
-				) {
+				if ((err as NodeJS.ErrnoException).code === "EPERM") {
 					throw new HTTPException(403, {
 						message:
 							"Operation not permitted by the OS (the server process may lack the required privileges)",

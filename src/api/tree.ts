@@ -7,7 +7,7 @@ import z from "zod";
 
 import { env } from "../lib/env";
 import log from "../lib/log";
-import { resolveSafePath } from "../lib/paths";
+import { resolveSafePath, statOr404 } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
 
 export interface FileTreeNode {
@@ -27,17 +27,14 @@ const handler = createFactory().createHandlers(
 		zErrorHook
 	),
 	async (c) => {
-		const requestedPath = c.req.query("path");
+		const requestedPath = c.req.valid("query").path;
 
 		const fullPath = await resolveSafePath(env.ROOT_DIR, requestedPath);
 		log.info(
 			`Resolved full path: ${requestedPath || "(root)"} -> ${fullPath}`
 		);
 
-		const stats = await stat(fullPath).catch(() => null);
-		if (!stats) {
-			throw new HTTPException(404, { message: "Folder not found" });
-		}
+		const stats = await statOr404(fullPath, "Folder not found");
 
 		if (!stats.isDirectory()) {
 			log.error(`Path is not a directory: ${fullPath}`);

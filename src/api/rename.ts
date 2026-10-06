@@ -7,29 +7,10 @@ import z from "zod";
 
 import { env } from "../lib/env";
 import { resolveSafePath } from "../lib/paths";
-import { zErrorHook } from "../lib/validation";
+import { zErrorHook, zName } from "../lib/validation";
 
 const handler = createFactory().createHandlers(
-	zValidator(
-		"json",
-		z.object({
-			path: z.string(),
-			name: z
-				.string()
-				.trim()
-				.min(1)
-				.max(255)
-				.refine(
-					(value) =>
-						value !== "." &&
-						value !== ".." &&
-						!value.includes("/") &&
-						!value.includes("\\"),
-					{ message: "Invalid name" }
-				),
-		}),
-		zErrorHook
-	),
+	zValidator("json", z.object({ path: z.string(), name: zName }), zErrorHook),
 	async (c) => {
 		if (env.READ_ONLY || !env.ALLOW_RENAME) {
 			throw new HTTPException(403, {
@@ -63,11 +44,7 @@ const handler = createFactory().createHandlers(
 		try {
 			await renameFile(oldPath, newPath);
 		} catch (err) {
-			if (
-				err instanceof Error &&
-				"code" in err &&
-				err.code === "ENOENT"
-			) {
+			if ((err as NodeJS.ErrnoException).code === "ENOENT") {
 				throw new HTTPException(404, {
 					message: "File or folder not found",
 				});

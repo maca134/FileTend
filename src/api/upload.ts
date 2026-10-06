@@ -7,7 +7,7 @@ import z from "zod";
 import { env } from "../lib/env";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
-import { zErrorHook } from "../lib/validation";
+import { isValidName, zErrorHook } from "../lib/validation";
 
 const handler = createFactory().createHandlers(
 	zValidator("query", z.object({ path: z.string().optional() }), zErrorHook),
@@ -43,12 +43,7 @@ const handler = createFactory().createHandlers(
 		}
 
 		for (const file of files) {
-			if (
-				file.name === "." ||
-				file.name === ".." ||
-				file.name.includes("/") ||
-				file.name.includes("\\")
-			) {
+			if (!isValidName(file.name)) {
 				throw new HTTPException(400, {
 					message: `Invalid file name: "${file.name}"`,
 				});
@@ -65,17 +60,16 @@ const handler = createFactory().createHandlers(
 			try {
 				await writeFile(destPath, buffer, { flag: "wx" });
 			} catch (err) {
-				if (err instanceof Error && "code" in err) {
-					if (err.code === "EEXIST") {
-						throw new HTTPException(409, {
-							message: `"${file.name}" already exists`,
-						});
-					}
-					if (err.code === "ENOENT") {
-						throw new HTTPException(400, {
-							message: "Target folder does not exist",
-						});
-					}
+				const code = (err as NodeJS.ErrnoException).code;
+				if (code === "EEXIST") {
+					throw new HTTPException(409, {
+						message: `"${file.name}" already exists`,
+					});
+				}
+				if (code === "ENOENT") {
+					throw new HTTPException(400, {
+						message: "Target folder does not exist",
+					});
 				}
 				throw err;
 			}

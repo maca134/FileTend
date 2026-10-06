@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
-import { realpath } from "node:fs/promises";
+import type { Stats } from "node:fs";
+import { realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "path";
 
 function isContained(root: string, target: string): boolean {
@@ -42,11 +43,7 @@ export async function resolveSafePath(
 			break;
 		} catch (err) {
 			if (err instanceof HTTPException) throw err;
-			if (
-				err instanceof Error &&
-				"code" in err &&
-				err.code === "ENOENT"
-			) {
+			if ((err as NodeJS.ErrnoException).code === "ENOENT") {
 				const parent = dirname(probe);
 				if (parent === probe) break;
 				probe = parent;
@@ -57,4 +54,13 @@ export async function resolveSafePath(
 	}
 
 	return fullPath;
+}
+
+export async function statOr404(
+	path: string,
+	message = "File or folder not found"
+): Promise<Stats> {
+	const stats = await stat(path).catch(() => null);
+	if (!stats) throw new HTTPException(404, { message });
+	return stats;
 }

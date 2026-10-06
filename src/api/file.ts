@@ -1,45 +1,42 @@
 import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import z from "zod";
 
 import { isBinaryBuffer } from "../lib/binary";
 import { env } from "../lib/env";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
-import { resolveSafePath } from "../lib/paths";
-import { zErrorHook } from "../lib/validation";
+import { resolveSafePath, statOr404 } from "../lib/paths";
+import { pathQuery, zErrorHook, zName } from "../lib/validation";
 
 const { createHandlers } = createFactory();
 
 const file = {
-	get: createHandlers(
-		zValidator("query", z.object({ path: z.string() }), zErrorHook),
-		async (c) => {
-			const { path } = c.req.valid("query");
-			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+	get: createHandlers(pathQuery, async (c) => {
+		const { path } = c.req.valid("query");
+		const fullPath = await resolveSafePath(env.ROOT_DIR, path);
 
-			const stats = await stat(fullPath).catch(() => null);
-			if (!stats || !stats.isFile()) {
-				throw new HTTPException(404, { message: "File not found" });
-			}
-
-			assertSizeAllowed(stats.size);
-
-			const buffer = await readFile(fullPath);
-			if (isBinaryBuffer(buffer)) {
-				throw new HTTPException(415, {
-					message: "Cannot open binary file",
-				});
-			}
-			const content = buffer.toString("utf-8");
-
-			return c.json({ path: fullPath, content, size: stats.size });
+		const stats = await statOr404(fullPath, "File not found");
+		if (!stats.isFile()) {
+			throw new HTTPException(404, { message: "File not found" });
 		}
-	),
+
+		assertSizeAllowed(stats.size);
+
+		const buffer = await readFile(fullPath);
+		if (isBinaryBuffer(buffer)) {
+			throw new HTTPException(415, {
+				message: "Cannot open binary file",
+			});
+		}
+		const content = buffer.toString("utf-8");
+
+		return c.json({ path: fullPath, content, size: stats.size });
+	}),
 	put: createHandlers(
-		zValidator("query", z.object({ path: z.string() }), zErrorHook),
+		pathQuery,
 		zValidator("json", z.object({ content: z.string() }), zErrorHook),
 		async (c) => {
 			if (env.READ_ONLY) {
@@ -56,8 +53,8 @@ const file = {
 
 			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
 
-			const stats = await stat(fullPath).catch(() => null);
-			if (!stats || !stats.isFile()) {
+			const stats = await statOr404(fullPath, "File not found");
+			if (!stats.isFile()) {
 				throw new HTTPException(404, { message: "File not found" });
 			}
 
@@ -71,19 +68,7 @@ const file = {
 			"json",
 			z.object({
 				parentPath: z.string().optional(),
-				name: z
-					.string()
-					.trim()
-					.min(1)
-					.max(255)
-					.refine(
-						(value) =>
-							value !== "." &&
-							value !== ".." &&
-							!value.includes("/") &&
-							!value.includes("\\"),
-						{ message: "Invalid name" }
-					),
+				name: zName,
 				type: z.enum(["file", "directory"]),
 			}),
 			zErrorHook
@@ -107,17 +92,16 @@ const file = {
 					await writeFile(fullPath, "", { flag: "wx" });
 				}
 			} catch (err) {
-				if (err instanceof Error && "code" in err) {
-					if (err.code === "EEXIST") {
-						throw new HTTPException(409, {
-							message: `A file or folder named "${name}" already exists`,
-						});
-					}
-					if (err.code === "ENOENT") {
-						throw new HTTPException(400, {
-							message: "Parent folder does not exist",
-						});
-					}
+				const code = (err as NodeJS.ErrnoException).code;
+				if (code === "EEXIST") {
+					throw new HTTPException(409, {
+						message: `A file or folder named "${name}" already exists`,
+					});
+				}
+				if (code === "ENOENT") {
+					throw new HTTPException(400, {
+						message: "Parent folder does not exist",
+					});
 				}
 				throw err;
 			}
@@ -129,42 +113,35 @@ const file = {
 			});
 		}
 	),
-	delete: createHandlers(
-		zValidator("query", z.object({ path: z.string() }), zErrorHook),
-		async (c) => {
-			if (env.READ_ONLY || !env.ALLOW_DELETE) {
-				throw new HTTPException(403, {
-					message: "Deleting files and folders is disabled",
-				});
-			}
-
-			const { path } = c.req.valid("query");
-			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
-
-			if (fullPath === resolve(env.ROOT_DIR)) {
-				throw new HTTPException(400, {
-					message: "Cannot delete the root directory",
-				});
-			}
-
-			try {
-				await rm(fullPath, { recursive: true });
-			} catch (err) {
-				if (
-					err instanceof Error &&
-					"code" in err &&
-					err.code === "ENOENT"
-				) {
-					throw new HTTPException(404, {
-						message: "File or folder not found",
-					});
-				}
-				throw err;
-			}
-
-			return c.json({ status: "ok" });
+	delete: createHandlers(pathQuery, async (c) => {
+		if (env.READ_ONLY || !env.ALLOW_DELETE) {
+			throw new HTTPException(403, {
+				message: "Deleting files and folders is disabled",
+			});
 		}
-	),
+
+		const { path } = c.req.valid("query");
+		const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+
+		if (fullPath === resolve(env.ROOT_DIR)) {
+			throw new HTTPException(400, {
+				message: "Cannot delete the root directory",
+			});
+		}
+
+		try {
+			await rm(fullPath, { recursive: true });
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+				throw new HTTPException(404, {
+					message: "File or folder not found",
+				});
+			}
+			throw err;
+		}
+
+		return c.json({ status: "ok" });
+	}),
 } as const;
 
 export default file;
