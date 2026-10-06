@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { formatBytes } from "../lib/format";
@@ -18,6 +18,20 @@ import {
 	DialogTitle,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
+
+type Ownership = { mode: number; uid: number; gid: number };
+
+function toOwnership(data: {
+	permissions: { mode: number };
+	owner: { uid: number };
+	group: { gid: number };
+}): Ownership {
+	return {
+		mode: data.permissions.mode,
+		uid: data.owner.uid,
+		gid: data.group.gid,
+	};
+}
 
 function Row({ label, value }: { label: string; value: string }) {
 	return (
@@ -121,60 +135,34 @@ export function PropertiesDialog({
 	const ancestors = getAncestorPaths(path);
 	const location = ancestors[ancestors.length - 1] ?? "/";
 
-	const [localMode, setLocalMode] = useState<number | null>(null);
-	const [localUid, setLocalUid] = useState<number | null>(null);
-	const [localGid, setLocalGid] = useState<number | null>(null);
-	const initializedRef = useRef(false);
-
-	useEffect(() => {
-		if (!open) initializedRef.current = false;
-	}, [open]);
-
-	useEffect(() => {
-		if (open && data && !initializedRef.current) {
-			setLocalMode(parseInt(data.permissions.octal, 8));
-			setLocalUid(data.owner.uid);
-			setLocalGid(data.group.gid);
-			initializedRef.current = true;
-		}
-	}, [open, data]);
-
+	// Unsaved edits; null means "show the server's current values".
+	const [edits, setEdits] = useState<Ownership | null>(null);
+	const local = edits ?? (data ? toOwnership(data) : null);
 	const isDirty =
 		!!data &&
-		localMode !== null &&
-		localUid !== null &&
-		localGid !== null &&
-		(localMode !== parseInt(data.permissions.octal, 8) ||
-			localUid !== data.owner.uid ||
-			localGid !== data.group.gid);
+		!!edits &&
+		(["mode", "uid", "gid"] as const).some(
+			(key) => edits[key] !== toOwnership(data)[key]
+		);
+
+	function handleOpenChange(next: boolean) {
+		if (!next) setEdits(null);
+		onOpenChange(next);
+	}
 
 	function handleSave() {
-		if (
-			!data ||
-			localMode === null ||
-			localUid === null ||
-			localGid === null
-		)
-			return;
+		if (!data || !edits) return;
+		const current = toOwnership(data);
 
-		const payload: {
-			path: string;
-			mode?: number;
-			uid?: number;
-			gid?: number;
-		} = { path };
-		if (localMode !== parseInt(data.permissions.octal, 8)) {
-			payload.mode = localMode;
-		}
-		if (localUid !== data.owner.uid) payload.uid = localUid;
-		if (localGid !== data.group.gid) payload.gid = localGid;
+		const payload: { path: string } & Partial<Ownership> = { path };
+		if (edits.mode !== current.mode) payload.mode = edits.mode;
+		if (edits.uid !== current.uid) payload.uid = edits.uid;
+		if (edits.gid !== current.gid) payload.gid = edits.gid;
 
 		updateProperties.mutate(payload, {
-			onSuccess: (result) => {
+			onSuccess: () => {
 				toast.success("Properties updated");
-				setLocalMode(parseInt(result.permissions.octal, 8));
-				setLocalUid(result.owner.uid);
-				setLocalGid(result.group.gid);
+				setEdits(null);
 			},
 			onError: (err) => {
 				toast.error(
@@ -184,21 +172,16 @@ export function PropertiesDialog({
 				);
 				// mode and uid/gid are applied server-side as two separate
 				// operations, so a failure may mean one of them already
-				// took effect. Refetch and resync local state to the
-				// server's actual values rather than leaving this dialog
-				// showing edits that only partially applied.
-				void refetch().then((result) => {
-					if (!result.data) return;
-					setLocalMode(parseInt(result.data.permissions.octal, 8));
-					setLocalUid(result.data.owner.uid);
-					setLocalGid(result.data.group.gid);
-				});
+				// took effect. Refetch and resync to the server's actual
+				// values rather than leaving this dialog showing edits that
+				// only partially applied.
+				void refetch().then(() => setEdits(null));
 			},
 		});
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{name}</DialogTitle>
@@ -213,123 +196,102 @@ export function PropertiesDialog({
 					</p>
 				)}
 
-				{data &&
-					localMode !== null &&
-					localUid !== null &&
-					localGid !== null && (
-						<div className="flex flex-col gap-3">
-							<div className="flex flex-col gap-1.5">
-								<Row label="Location" value={location} />
+				{data && local && (
+					<div className="flex flex-col gap-3">
+						<div className="flex flex-col gap-1.5">
+							<Row label="Location" value={location} />
+							<Row
+								label="Type"
+								value={type === "directory" ? "Folder" : "File"}
+							/>
+							{type === "file" && (
 								<Row
-									label="Type"
-									value={
-										type === "directory" ? "Folder" : "File"
+									label="Size"
+									value={formatBytes(data.size)}
+								/>
+							)}
+							<Row
+								label="Modified"
+								value={new Date(
+									data.modifiedAt
+								).toLocaleString()}
+							/>
+							<Row
+								label="Created"
+								value={new Date(
+									data.createdAt
+								).toLocaleString()}
+							/>
+							<Row
+								label="Accessed"
+								value={new Date(
+									data.accessedAt
+								).toLocaleString()}
+							/>
+						</div>
+
+						<div className="grid grid-cols-[7rem_1fr] items-start gap-2 text-sm">
+							<span className="pt-1 text-muted-foreground">
+								Permissions
+							</span>
+							<PermissionsEditor
+								mode={local.mode}
+								onChange={(mode) =>
+									setEdits({ ...local, mode })
+								}
+								disabled={permissions?.canChmod === false}
+							/>
+						</div>
+
+						<div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-sm">
+							<span className="text-muted-foreground">Owner</span>
+							<div className="flex flex-col gap-0.5">
+								<Input
+									type="number"
+									min={0}
+									className="h-7 w-24"
+									value={local.uid}
+									disabled={permissions?.canChown === false}
+									onChange={(e) =>
+										setEdits({
+											...local,
+											uid: Number(e.target.value),
+										})
 									}
 								/>
-								{type === "file" && (
-									<Row
-										label="Size"
-										value={formatBytes(data.size)}
-									/>
+								{data.owner.name && (
+									<span className="text-xs text-muted-foreground">
+										Currently: {data.owner.name}
+									</span>
 								)}
-								<Row
-									label="Modified"
-									value={new Date(
-										data.modifiedAt
-									).toLocaleString()}
-								/>
-								<Row
-									label="Created"
-									value={new Date(
-										data.createdAt
-									).toLocaleString()}
-								/>
-								<Row
-									label="Accessed"
-									value={new Date(
-										data.accessedAt
-									).toLocaleString()}
-								/>
-							</div>
-
-							<div className="grid grid-cols-[7rem_1fr] items-start gap-2 text-sm">
-								<span className="pt-1 text-muted-foreground">
-									Permissions
-								</span>
-								<PermissionsEditor
-									mode={localMode}
-									onChange={setLocalMode}
-									disabled={
-										permissions
-											? !permissions.canChmod
-											: false
-									}
-								/>
-							</div>
-
-							<div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-sm">
-								<span className="text-muted-foreground">
-									Owner
-								</span>
-								<div className="flex flex-col gap-0.5">
-									<Input
-										type="number"
-										min={0}
-										className="h-7 w-24"
-										value={localUid}
-										disabled={
-											permissions
-												? !permissions.canChown
-												: false
-										}
-										onChange={(e) =>
-											setLocalUid(
-												e.target.value === ""
-													? 0
-													: Number(e.target.value)
-											)
-										}
-									/>
-									{data.owner.name && (
-										<span className="text-xs text-muted-foreground">
-											Currently: {data.owner.name}
-										</span>
-									)}
-								</div>
-							</div>
-
-							<div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-sm">
-								<span className="text-muted-foreground">
-									Group
-								</span>
-								<div className="flex flex-col gap-0.5">
-									<Input
-										type="number"
-										min={0}
-										className="h-7 w-24"
-										value={localGid}
-										disabled={
-											permissions
-												? !permissions.canChown
-												: false
-										}
-										onChange={(e) =>
-											setLocalGid(
-												e.target.value === ""
-													? 0
-													: Number(e.target.value)
-											)
-										}
-									/>
-									{data.group.name && (
-										<span className="text-xs text-muted-foreground">
-											Currently: {data.group.name}
-										</span>
-									)}
-								</div>
 							</div>
 						</div>
-					)}
+
+						<div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-sm">
+							<span className="text-muted-foreground">Group</span>
+							<div className="flex flex-col gap-0.5">
+								<Input
+									type="number"
+									min={0}
+									className="h-7 w-24"
+									value={local.gid}
+									disabled={permissions?.canChown === false}
+									onChange={(e) =>
+										setEdits({
+											...local,
+											gid: Number(e.target.value),
+										})
+									}
+								/>
+								{data.group.name && (
+									<span className="text-xs text-muted-foreground">
+										Currently: {data.group.name}
+									</span>
+								)}
+							</div>
+						</div>
+					</div>
+				)}
 
 				<DialogFooter>
 					<Button

@@ -107,10 +107,10 @@ export function useUpdatePropertiesMutation() {
 				await api.properties.$patch({ query: { path }, json }),
 				"Failed to update properties"
 			),
-		onSuccess: (_data, variables) => {
-			queryClient.invalidateQueries({
-				queryKey: ["properties", variables.path],
-			});
+		// The response is the updated properties, so write it straight
+		// into the cache rather than refetching.
+		onSuccess: (data, variables) => {
+			queryClient.setQueryData(["properties", variables.path], data);
 		},
 	});
 }

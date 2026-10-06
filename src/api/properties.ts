@@ -11,12 +11,13 @@ import { resolveSafePath, statOr404 } from "../lib/paths";
 import { resolveGroupName, resolveUserName } from "../lib/user-lookup";
 import { pathQuery, zErrorHook } from "../lib/validation";
 
-function formatPermissions(mode: number): { octal: string; symbolic: string } {
+function formatPermissions(mode: number) {
 	const bits = mode & 0o777;
 	const rwx = (n: number) =>
 		`${n & 4 ? "r" : "-"}${n & 2 ? "w" : "-"}${n & 1 ? "x" : "-"}`;
 
 	return {
+		mode: bits,
 		octal: bits.toString(8).padStart(3, "0"),
 		symbolic: `${rwx((bits >> 6) & 7)}${rwx((bits >> 3) & 7)}${rwx(bits & 7)}`,
 	};
