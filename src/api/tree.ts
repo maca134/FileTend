@@ -14,7 +14,6 @@ export interface FileTreeNode {
 	name: string;
 	path: string;
 	type: "file" | "directory";
-	children: FileTreeNode[];
 	size?: number;
 }
 
@@ -51,7 +50,7 @@ const handler = createFactory().createHandlers(
 		}
 
 		const nodes = await Promise.all(
-			entries.map(async (entry) => {
+			entries.map(async (entry): Promise<FileTreeNode> => {
 				const entryPath = resolve(fullPath, entry.name);
 				const isDirectory = entry.isDirectory();
 				const size = isDirectory
@@ -64,9 +63,8 @@ const handler = createFactory().createHandlers(
 					name: entry.name,
 					path: entryPath,
 					type: isDirectory ? "directory" : "file",
-					children: [] as FileTreeNode[],
 					size,
-				} as FileTreeNode;
+				};
 			})
 		);
 
