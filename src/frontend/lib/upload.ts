@@ -26,6 +26,7 @@ export function uploadFilesXhr(
 			? `?path=${encodeURIComponent(parentPath)}`
 			: "";
 	const xhr = new XMLHttpRequest();
+	xhr.responseType = "json";
 
 	const promise = new Promise<{ files: { name: string; path: string }[] }>(
 		(resolve, reject) => {
@@ -34,24 +35,18 @@ export function uploadFilesXhr(
 			});
 			xhr.addEventListener("load", () => {
 				if (xhr.status >= 200 && xhr.status < 300) {
-					resolve(JSON.parse(xhr.responseText));
+					resolve(xhr.response);
 					return;
 				}
-				let message = "Failed to upload";
-				try {
-					const body: unknown = JSON.parse(xhr.responseText);
-					if (
-						body &&
-						typeof body === "object" &&
-						"message" in body &&
-						typeof body.message === "string"
-					) {
-						message = body.message;
-					}
-				} catch {
-					// Not JSON -- fall through to the generic message.
-				}
-				reject(new Error(message));
+				// responseType "json" yields null for a non-JSON body.
+				const message = xhr.response?.message;
+				reject(
+					new Error(
+						typeof message === "string"
+							? message
+							: "Failed to upload"
+					)
+				);
 			});
 			xhr.addEventListener("error", () =>
 				reject(new Error("Failed to upload"))
