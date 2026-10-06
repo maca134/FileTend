@@ -24,24 +24,22 @@ type ContextMenuProps = {
 };
 
 export const ContextMenu = ({ items, children }: ContextMenuProps) => (
-	<>
-		<ContextMenuRoot>
-			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-			<ContextMenuContent className="w-60">
-				{items.map((item, index) =>
-					"separator" in item ? (
-						<ContextMenuSeparator key={index} />
-					) : (
-						<ContextMenuItem
-							key={index}
-							onSelect={item.onSelect}
-							disabled={item.disabled}
-						>
-							<div className="ml-6">{item.label}</div>
-						</ContextMenuItem>
-					)
-				)}
-			</ContextMenuContent>
-		</ContextMenuRoot>
-	</>
+	<ContextMenuRoot>
+		<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+		<ContextMenuContent className="w-60">
+			{items.map((item, index) =>
+				"separator" in item ? (
+					<ContextMenuSeparator key={index} />
+				) : (
+					<ContextMenuItem
+						key={index}
+						onSelect={item.onSelect}
+						disabled={item.disabled}
+					>
+						<div className="ml-6">{item.label}</div>
+					</ContextMenuItem>
+				)
+			)}
+		</ContextMenuContent>
+	</ContextMenuRoot>
 );

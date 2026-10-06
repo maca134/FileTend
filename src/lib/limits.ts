@@ -7,16 +7,10 @@ export function assertExtensionAllowed(filename: string): void {
 	const ext = extname(filename).replace(/^\./, "").toLowerCase();
 
 	if (
-		env.ALLOWED_EXTENSIONS &&
-		env.ALLOWED_EXTENSIONS.length > 0 &&
-		!env.ALLOWED_EXTENSIONS.includes(ext)
+		(env.ALLOWED_EXTENSIONS?.length &&
+			!env.ALLOWED_EXTENSIONS.includes(ext)) ||
+		env.DENY_EXTENSIONS?.includes(ext)
 	) {
-		throw new HTTPException(415, {
-			message: `File extension ".${ext}" is not allowed`,
-		});
-	}
-
-	if (env.DENY_EXTENSIONS && env.DENY_EXTENSIONS.includes(ext)) {
 		throw new HTTPException(415, {
 			message: `File extension ".${ext}" is not allowed`,
 		});

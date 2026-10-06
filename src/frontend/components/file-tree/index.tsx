@@ -110,9 +110,9 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className={cn("cursor-pointer")}
+						className="cursor-pointer"
 						title="Refresh"
-						onClick={() => handleRefresh()}
+						onClick={handleRefresh}
 					>
 						<RefreshCw />
 					</Button>
@@ -121,7 +121,7 @@ export function FileTree() {
 						size="icon-sm"
 						className="cursor-pointer"
 						title="Collapse All"
-						onClick={() => collapseAll()}
+						onClick={collapseAll}
 					>
 						<CopyMinus />
 					</Button>

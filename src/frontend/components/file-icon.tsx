@@ -1,5 +1,4 @@
 import { getSetiIcon } from "../lib/seti-icons";
-import { cn } from "../lib/utils";
 
 export const FileIcon = ({
 	path,
@@ -13,7 +12,7 @@ export const FileIcon = ({
 	return (
 		<svg
 			viewBox={viewBox}
-			className={cn("shrink-0 size-5")}
+			className="shrink-0 size-5"
 			dangerouslySetInnerHTML={{ __html: markup }}
 		/>
 	);
