@@ -35,23 +35,3 @@ export function downloadPath(path: string) {
 	a.click();
 	a.remove();
 }
-
-/*
-Example API usage:
-
-api.auth.login.$post({
-	json: {
-		password: "password"
-	}
-}).then((response) => {
-	if (!response.ok) {
-		throw new Error("Failed to log in");
-	}
-	return response.json();
-}).then((data) => {
-	console.log("Logged in", data);
-}).catch((err) => {
-	console.error("Failed to log in", err);
-});
-
-*/
