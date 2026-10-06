@@ -2,13 +2,20 @@ import { randomBytes, scryptSync } from "crypto";
 import { isAbsolute, resolve } from "path";
 import z from "zod";
 
-const zStringBoolean = z.string().transform((value) => {
-	if (value.toLowerCase() === "true") return true;
-	if (value.toLowerCase() === "false") return false;
-	throw new Error(
-		"Invalid boolean value. Use 'true' or 'false' (case-insensitive)."
+const SIZE_UNITS: Record<string, number> = {
+	B: 1,
+	KB: 1024,
+	MB: 1024 ** 2,
+	GB: 1024 ** 3,
+};
+
+const SIZE_PATTERN = /^(\d+)([KMG]?B)$/i;
+
+const csvList = z
+	.string()
+	.transform((value) =>
+		value.split(",").map((ext) => ext.trim().toLowerCase())
 	);
-});
 
 const raw = z
 	.object({
@@ -19,58 +26,31 @@ const raw = z
 				isAbsolute(value) ? value : resolve(process.cwd(), value)
 			)
 			.default("/srv"),
-		PORT: z.string().regex(/^\d+$/).transform(Number).default(3000),
+		PORT: z.coerce.number().int().positive().default(3000),
 		SECRET_KEY: z.string().optional(),
-		READ_ONLY: zStringBoolean.default(false),
-		ALLOW_CREATE: zStringBoolean.default(true),
-		ALLOW_DELETE: zStringBoolean.default(true),
-		ALLOW_RENAME: zStringBoolean.default(true),
-		ALLOW_UPLOAD: zStringBoolean.default(true),
-		ALLOW_DOWNLOAD: zStringBoolean.default(true),
-		ALLOW_CHMOD: zStringBoolean.default(true),
-		ALLOW_CHOWN: zStringBoolean.default(false),
+		READ_ONLY: z.stringbool().default(false),
+		ALLOW_CREATE: z.stringbool().default(true),
+		ALLOW_DELETE: z.stringbool().default(true),
+		ALLOW_RENAME: z.stringbool().default(true),
+		ALLOW_UPLOAD: z.stringbool().default(true),
+		ALLOW_DOWNLOAD: z.stringbool().default(true),
+		ALLOW_CHMOD: z.stringbool().default(true),
+		ALLOW_CHOWN: z.stringbool().default(false),
 		MAX_FILE_SIZE: z
-			.union([
-				z.number().int().positive(),
-				z.string().regex(/^\d+[KMG]?B$/i, {
-					message:
-						"Invalid file size format. Use a number followed by an optional unit (K, M, G) and 'B' (e.g., 10MB, 1GB).",
-				}),
-			])
+			.string()
+			.regex(SIZE_PATTERN, {
+				message:
+					"Invalid file size format. Use a number followed by an optional unit (K, M, G) and 'B' (e.g., 10MB, 1GB).",
+			})
 			.transform((value) => {
-				if (typeof value === "number") {
-					return value;
-				}
-				const unit = value.slice(-2).toUpperCase();
-				const size = parseInt(value.slice(0, -2), 10);
-				switch (unit) {
-					case "KB":
-						return size * 1024;
-					case "MB":
-						return size * 1024 * 1024;
-					case "GB":
-						return size * 1024 * 1024 * 1024;
-					default:
-						throw new Error(
-							"Invalid file size format. Use a number followed by an optional unit (K, M, G) and 'B' (e.g., 10MB, 1GB)."
-						);
-				}
+				const [, size, unit] = value.match(SIZE_PATTERN)!;
+				return Number(size) * SIZE_UNITS[unit!.toUpperCase()]!;
 			})
 			.default(10 * 1024 * 1024), // Default to 10MB
-		ALLOWED_EXTENSIONS: z
-			.string()
-			.transform((value) =>
-				value.split(",").map((ext) => ext.trim().toLowerCase())
-			)
-			.optional(),
-		DENY_EXTENSIONS: z
-			.string()
-			.transform((value) =>
-				value.split(",").map((ext) => ext.trim().toLowerCase())
-			)
-			.optional(),
+		ALLOWED_EXTENSIONS: csvList.optional(),
+		DENY_EXTENSIONS: csvList.optional(),
 		AUTH_PASSWORD: z.string().optional(),
-		AUTH_ENABLED: zStringBoolean.optional(),
+		AUTH_ENABLED: z.stringbool().optional(),
 	})
 	// An env var set to the empty string (e.g. `- AUTH_PASSWORD=${AUTH_PASSWORD:-}`
 	// in a compose file, when AUTH_PASSWORD isn't set in .env) is functionally
