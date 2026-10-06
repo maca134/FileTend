@@ -1,11 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import log from "../lib/log";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
@@ -18,7 +18,7 @@ export interface FileTreeNode {
 	size?: number;
 }
 
-const handler = createHandler(
+const handler = createFactory().createHandlers(
 	zValidator(
 		"query",
 		z.object({

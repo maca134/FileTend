@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -6,13 +7,14 @@ import z from "zod";
 
 import { isBinaryBuffer } from "../lib/binary";
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
 
+const { createHandlers } = createFactory();
+
 const file = {
-	get: createHandler(
+	get: createHandlers(
 		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			const { path } = c.req.valid("query");
@@ -36,7 +38,7 @@ const file = {
 			return c.json({ path: fullPath, content, size: stats.size });
 		}
 	),
-	put: createHandler(
+	put: createHandlers(
 		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		zValidator("json", z.object({ content: z.string() }), zErrorHook),
 		async (c) => {
@@ -64,7 +66,7 @@ const file = {
 			return c.json({ status: "ok" });
 		}
 	),
-	post: createHandler(
+	post: createHandlers(
 		zValidator(
 			"json",
 			z.object({
@@ -127,7 +129,7 @@ const file = {
 			});
 		}
 	),
-	delete: createHandler(
+	delete: createHandlers(
 		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			if (env.READ_ONLY || !env.ALLOW_DELETE) {

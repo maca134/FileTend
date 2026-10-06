@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { ZipArchive } from "archiver";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -8,7 +9,6 @@ import { Readable } from "node:stream";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import log from "../lib/log";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
@@ -18,7 +18,7 @@ function contentDisposition(filename: string) {
 	return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
-const handler = createHandler(
+const handler = createFactory().createHandlers(
 	zValidator("query", z.object({ path: z.string() }), zErrorHook),
 	async (c) => {
 		if (!env.ALLOW_DOWNLOAD) {

@@ -1,15 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { stat, writeFile } from "node:fs/promises";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
 
-const handler = createHandler(
+const handler = createFactory().createHandlers(
 	zValidator("query", z.object({ path: z.string().optional() }), zErrorHook),
 	async (c) => {
 		if (env.READ_ONLY || !env.ALLOW_UPLOAD) {

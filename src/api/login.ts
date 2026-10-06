@@ -1,10 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { createHash, timingSafeEqual } from "node:crypto";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import { setSessionCookie } from "../lib/session";
 import { zErrorHook } from "../lib/validation";
 
@@ -20,7 +20,7 @@ function safeCompare(a: string, b: string): boolean {
 	return timingSafeEqual(digestA, digestB);
 }
 
-const handler = createHandler(
+const handler = createFactory().createHandlers(
 	zValidator("json", schema, zErrorHook),
 	async (c) => {
 		if (!env.AUTH_ENABLED) {

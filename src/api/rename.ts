@@ -1,15 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { rename as renameFile, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook } from "../lib/validation";
 
-const handler = createHandler(
+const handler = createFactory().createHandlers(
 	zValidator(
 		"json",
 		z.object({

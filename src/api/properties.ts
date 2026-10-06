@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import type { Stats } from "node:fs";
 import { chmod, chown, stat } from "node:fs/promises";
@@ -6,7 +7,6 @@ import { basename } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
-import { createHandler } from "../lib/handler";
 import { resolveSafePath } from "../lib/paths";
 import { resolveGroupName, resolveUserName } from "../lib/user-lookup";
 import { zErrorHook } from "../lib/validation";
@@ -37,8 +37,10 @@ function buildPropertiesResponse(fullPath: string, stats: Stats) {
 	};
 }
 
+const { createHandlers } = createFactory();
+
 const properties = {
-	get: createHandler(
+	get: createHandlers(
 		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		async (c) => {
 			const { path } = c.req.valid("query");
@@ -54,7 +56,7 @@ const properties = {
 			return c.json(buildPropertiesResponse(fullPath, stats));
 		}
 	),
-	patch: createHandler(
+	patch: createHandlers(
 		zValidator("query", z.object({ path: z.string() }), zErrorHook),
 		zValidator(
 			"json",

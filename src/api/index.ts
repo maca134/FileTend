@@ -16,20 +16,20 @@ import upload from "./upload";
 const app = new Hono();
 
 const api = app
-	.get("/auth/status", status)
-	.post("/auth/login", login)
-	.post("/auth/logout", logout)
+	.get("/auth/status", ...status)
+	.post("/auth/login", ...login)
+	.post("/auth/logout", ...logout)
 	.use(auth)
-	.get("/tree", tree)
-	.get("/properties", properties.get)
-	.patch("/properties", properties.patch)
-	.get("/file", file.get)
-	.put("/file", file.put)
-	.post("/file", file.post)
-	.delete("/file", file.delete)
-	.post("/rename", rename)
-	.post("/upload", upload)
-	.get("/download", download);
+	.get("/tree", ...tree)
+	.get("/properties", ...properties.get)
+	.patch("/properties", ...properties.patch)
+	.get("/file", ...file.get)
+	.put("/file", ...file.put)
+	.post("/file", ...file.post)
+	.delete("/file", ...file.delete)
+	.post("/rename", ...rename)
+	.post("/upload", ...upload)
+	.get("/download", ...download);
 
 api.onError((err, c) => {
 	if (err instanceof HTTPException) {
