@@ -1,18 +1,12 @@
-import { getSignedCookie } from "hono/cookie";
 import { createFactory } from "hono/factory";
 
 import { env } from "../lib/env";
-import { SESSION_COOKIE_NAME } from "../lib/session";
+import { isAuthed } from "../lib/session";
 
 const handler = createFactory().createHandlers(async (c) => {
-	const authed = env.AUTH_ENABLED
-		? (await getSignedCookie(c, env.SECRET_KEY, SESSION_COOKIE_NAME)) ===
-			"authenticated"
-		: true;
-
 	return c.json({
 		authEnabled: env.AUTH_ENABLED,
-		authed,
+		authed: !env.AUTH_ENABLED || (await isAuthed(c)),
 		permissions: {
 			readOnly: env.READ_ONLY,
 			canCreate: !env.READ_ONLY && env.ALLOW_CREATE,

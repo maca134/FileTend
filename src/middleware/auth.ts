@@ -1,9 +1,8 @@
-import { getSignedCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
 import { env } from "../lib/env";
-import { SESSION_COOKIE_NAME, setSessionCookie } from "../lib/session";
+import { isAuthed, setSessionCookie } from "../lib/session";
 
 export const auth = createMiddleware(async (c, next) => {
 	if (!env.AUTH_ENABLED) {
@@ -11,13 +10,7 @@ export const auth = createMiddleware(async (c, next) => {
 		return;
 	}
 
-	const session = await getSignedCookie(
-		c,
-		env.SECRET_KEY,
-		SESSION_COOKIE_NAME
-	);
-
-	if (session !== "authenticated") {
+	if (!(await isAuthed(c))) {
 		throw new HTTPException(401, { message: "Authentication required" });
 	}
 
