@@ -64,14 +64,10 @@ const server = serve({
 
 log.info(`Server started on port http://localhost:${env.PORT}`);
 
-process.on("SIGINT", () => {
-	log.info("Received SIGINT, shutting down server...");
-	server.stop();
-	process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-	log.info("Received SIGTERM, shutting down server...");
-	server.stop();
-	process.exit(0);
-});
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+	process.on(signal, () => {
+		log.info(`Received ${signal}, shutting down server...`);
+		server.stop();
+		process.exit(0);
+	});
+}
