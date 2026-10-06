@@ -13,8 +13,7 @@ import { ConfirmDialog } from "../confirm-dialog";
 import { ContextMenu, type ContextMenuItem } from "../context-menu";
 import { FileIcon } from "../file-icon";
 import { PropertiesDialog } from "../properties-dialog";
-import { CreateInputRow } from "./create-input-row";
-import { RenameInputRow } from "./rename-input-row";
+import { CreateInputRow, RenameInputRow } from "./name-input-row";
 
 function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const openFile = useEditorStore((s) => s.openFile);

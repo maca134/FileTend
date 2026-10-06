@@ -17,7 +17,7 @@ import { useEditorStore } from "@/store/editor-store";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { CreateInputRow } from "./create-input-row";
+import { CreateInputRow } from "./name-input-row";
 import { TreeEntry } from "./tree-entry";
 
 function useRevealActiveTab() {
