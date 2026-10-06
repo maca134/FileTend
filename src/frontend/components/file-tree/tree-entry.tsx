@@ -15,7 +15,6 @@ import { FileIcon } from "../file-icon";
 import { PropertiesDialog } from "../properties-dialog";
 import { CreateInputRow } from "./create-input-row";
 import { RenameInputRow } from "./rename-input-row";
-import { registerTreeEntryRef } from "./tree-entry-refs";
 
 function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 	const openFile = useEditorStore((s) => s.openFile);
@@ -85,7 +84,6 @@ function FileTreeEntry({ node, depth }: { node: FileTreeNode; depth: number }) {
 			) : (
 				<ContextMenu items={items}>
 					<button
-						ref={(el) => registerTreeEntryRef(node.path, el)}
 						type="button"
 						data-path={node.path}
 						onClick={() =>

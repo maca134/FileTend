@@ -19,7 +19,6 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { CreateInputRow } from "./create-input-row";
 import { TreeEntry } from "./tree-entry";
-import { getTreeEntryRef } from "./tree-entry-refs";
 
 function useRevealActiveTab() {
 	const activeTabPath = useEditorStore((s) => s.activeTabPath);
@@ -33,7 +32,9 @@ function useRevealActiveTab() {
 		let attempts = 0;
 		let frame: number;
 		const tryScroll = () => {
-			const el = getTreeEntryRef(activeTabPath);
+			const el = document.querySelector(
+				`[data-path="${CSS.escape(activeTabPath)}"]`
+			);
 			if (el) {
 				el.scrollIntoView({ block: "center", behavior: "smooth" });
 				return;
