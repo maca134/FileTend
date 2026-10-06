@@ -1,7 +1,6 @@
 import { ZipArchive } from "archiver";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { Readable } from "node:stream";
 
@@ -50,13 +49,10 @@ const handler = createFactory().createHandlers(pathQuery, async (c) => {
 		);
 	}
 
-	const stream = createReadStream(fullPath);
-
-	return new Response(Readable.toWeb(stream) as unknown as ReadableStream, {
+	return new Response(Bun.file(fullPath), {
 		headers: {
 			"Content-Type": "application/octet-stream",
 			"Content-Disposition": contentDisposition(name),
-			"Content-Length": String(stats.size),
 		},
 	});
 });
