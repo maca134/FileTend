@@ -6,7 +6,7 @@ import {
 	expect,
 	test,
 } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import api from "../../src/api/index";
@@ -92,5 +92,41 @@ describe("POST /rename", () => {
 			body: JSON.stringify({ path: "dir1", name: "dir2" }),
 		});
 		expect(res.status).toBe(403);
+	});
+
+	test("415s renaming a file to a denied extension", async () => {
+		env.DENY_EXTENSIONS = ["sh"];
+		writeFileSync(join(root, "payload.txt"), "x");
+		const res = await api.request("/rename", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path: "payload.txt", name: "payload.sh" }),
+		});
+		expect(res.status).toBe(415);
+		expect(existsSync(join(root, "payload.txt"))).toBe(true);
+		expect(existsSync(join(root, "payload.sh"))).toBe(false);
+	});
+
+	test("415s renaming a denied-extension file to another denied name", async () => {
+		env.DENY_EXTENSIONS = ["sh"];
+		writeFileSync(join(root, "existing.sh"), "x");
+		const res = await api.request("/rename", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path: "existing.sh", name: "moved.sh" }),
+		});
+		expect(res.status).toBe(415);
+		expect(existsSync(join(root, "existing.sh"))).toBe(true);
+	});
+
+	test("renames a folder when an extension allow-list is set", async () => {
+		env.ALLOWED_EXTENSIONS = ["md"];
+		mkdirSync(join(root, "dir3"));
+		const res = await api.request("/rename", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path: "dir3", name: "dir4" }),
+		});
+		expect(res.status).toBe(200);
 	});
 });

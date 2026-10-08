@@ -108,11 +108,7 @@ export function CreateInputRow({
 						onSuccess: (node) => {
 							cancelCreating();
 							if (creatingNode.type === "file") {
-								openFile({
-									path: node.path,
-									name: node.name,
-									dirty: false,
-								});
+								openFile({ path: node.path, name: node.name });
 							}
 						},
 					}

@@ -7,12 +7,15 @@ import {
 	RefreshCw,
 	Upload,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAncestorPaths } from "@/lib/path";
 import { useAuthStatus, useLogout, useTreeQuery } from "@/lib/queries";
-import { useUploadWithProgress } from "@/lib/use-upload-with-progress";
+import {
+	useUploadDrop,
+	useUploadWithProgress,
+} from "@/lib/use-upload-with-progress";
 import { useEditorStore } from "@/store/editor-store";
 
 import { cn } from "../../lib/utils";
@@ -52,7 +55,7 @@ function useRevealActiveTab() {
 
 export function FileTree() {
 	const { data, isLoading, isError } = useTreeQuery();
-	const nodes = data?.nodes.length ? data.nodes : [];
+	const nodes = data?.nodes ?? [];
 	const creatingNode = useEditorStore((s) => s.creatingNode);
 	const startCreating = useEditorStore((s) => s.startCreating);
 	const collapseAll = useEditorStore((s) => s.collapseAll);
@@ -62,7 +65,7 @@ export function FileTree() {
 	const logout = useLogout();
 	const uploadFiles = useUploadWithProgress();
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [isDragOver, setIsDragOver] = useState(false);
+	const { isDragOver, dropHandlers } = useUploadDrop(undefined);
 	const isCreatingAtRoot =
 		!!creatingNode && creatingNode.parentPath === undefined;
 
@@ -88,7 +91,7 @@ export function FileTree() {
 								? "New File (disabled)"
 								: "New File"
 						}
-						disabled={permissions ? !permissions.canCreate : false}
+						disabled={permissions?.canCreate === false}
 						onClick={() => startCreating(undefined, "file")}
 					>
 						<FilePlus />
@@ -102,7 +105,7 @@ export function FileTree() {
 								? "New Folder (disabled)"
 								: "New Folder"
 						}
-						disabled={permissions ? !permissions.canCreate : false}
+						disabled={permissions?.canCreate === false}
 						onClick={() => startCreating(undefined, "directory")}
 					>
 						<FolderPlus />
@@ -134,7 +137,7 @@ export function FileTree() {
 								? "Upload (disabled)"
 								: "Upload"
 						}
-						disabled={permissions ? !permissions.canUpload : false}
+						disabled={permissions?.canUpload === false}
 						onClick={() => fileInputRef.current?.click()}
 					>
 						<Upload />
@@ -170,18 +173,7 @@ export function FileTree() {
 					"flex-1 overflow-hidden",
 					isDragOver && "bg-accent/40"
 				)}
-				onDragOver={(e) => {
-					e.preventDefault();
-					if (permissions?.canUpload === false) return;
-					setIsDragOver(true);
-				}}
-				onDragLeave={() => setIsDragOver(false)}
-				onDrop={(e) => {
-					e.preventDefault();
-					setIsDragOver(false);
-					if (permissions?.canUpload === false) return;
-					uploadFiles(undefined, Array.from(e.dataTransfer.files));
-				}}
+				{...dropHandlers}
 			>
 				{isLoading && (
 					<div className="p-3 text-sm text-muted-foreground">

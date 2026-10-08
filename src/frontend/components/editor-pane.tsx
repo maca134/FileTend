@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { downloadPath } from "@/lib/api";
 import { getLanguageForPath } from "@/lib/language";
 import { useFileContent, useSaveFile } from "@/lib/queries";
-import { useEditorStore } from "@/store/editor-store";
+import { isTabDirty, useEditorStore } from "@/store/editor-store";
 
 import { ConfirmDialog } from "./confirm-dialog";
 
@@ -84,10 +84,6 @@ export function EditorPane() {
 		);
 	};
 
-	const handleRevert = () => {
-		setConfirmRevertOpen(true);
-	};
-
 	// Monaco doesn't re-sync an existing model from a changed `value` prop,
 	// so reverting has to call setValue() on the live editor instance
 	// directly, in addition to resetting the store's buffer.
@@ -110,6 +106,8 @@ export function EditorPane() {
 		);
 	}
 
+	const canSave = isTabDirty(activeTab) && !saveFile.isPending;
+
 	return (
 		<div className="flex h-full flex-col bg-editor-background">
 			<div className="flex h-10 shrink-0 items-center justify-between border-b px-3">
@@ -121,12 +119,8 @@ export function EditorPane() {
 						size="icon-sm"
 						variant="ghost"
 						className="cursor-pointer"
-						disabled={
-							!activeTab.dirty ||
-							activeTab.content === undefined ||
-							saveFile.isPending
-						}
-						onClick={handleRevert}
+						disabled={!canSave}
+						onClick={() => setConfirmRevertOpen(true)}
 						title="Revert changes"
 					>
 						<RefreshCcw className="h-3 w-3" />
@@ -135,11 +129,7 @@ export function EditorPane() {
 						size="icon-sm"
 						variant="ghost"
 						className="cursor-pointer"
-						disabled={
-							!activeTab.dirty ||
-							activeTab.content === undefined ||
-							saveFile.isPending
-						}
+						disabled={!canSave}
 						onClick={handleSave}
 						title="Save changes"
 					>
@@ -192,7 +182,6 @@ export function EditorPane() {
 							updateTabContent(activeTab.path, value ?? "");
 						}}
 						options={{
-							// minimap: { enabled: false },
 							fontSize: 13,
 						}}
 					/>

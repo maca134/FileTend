@@ -151,7 +151,10 @@ describe("auth flow", () => {
 	});
 
 	test("logout clears the session cookie", async () => {
-		const res = await api.request("/auth/logout", { method: "POST" });
+		const res = await api.request("/auth/logout", {
+			method: "POST",
+			headers: { "Sec-Fetch-Site": "same-origin" },
+		});
 		expect(res.status).toBe(200);
 		const setCookie = res.headers.get("set-cookie");
 		expect(setCookie).toContain("Max-Age=0");

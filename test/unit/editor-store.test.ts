@@ -8,7 +8,7 @@ const paths = () => store().openTabs.map((t) => t.path);
 beforeEach(() => {
 	useEditorStore.setState({ openTabs: [], activeTabPath: null });
 	for (const path of ["/a", "/b", "/c", "/d"]) {
-		store().openFile({ path, name: path, dirty: false });
+		store().openFile({ path, name: path });
 	}
 });
 
@@ -50,7 +50,7 @@ describe("closeTabs", () => {
 	test("closeTabsUnder closes a folder's descendants only", () => {
 		useEditorStore.setState({ openTabs: [], activeTabPath: null });
 		for (const path of ["/dir/x", "/dir2/y", "/dir/sub/z"]) {
-			store().openFile({ path, name: path, dirty: false });
+			store().openFile({ path, name: path });
 		}
 		store().closeTabsUnder("/dir");
 		expect(paths()).toEqual(["/dir2/y"]);

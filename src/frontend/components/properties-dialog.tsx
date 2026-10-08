@@ -138,12 +138,14 @@ export function PropertiesDialog({
 	// Unsaved edits; null means "show the server's current values".
 	const [edits, setEdits] = useState<Ownership | null>(null);
 	const local = edits ?? (data ? toOwnership(data) : null);
-	const isDirty =
-		!!data &&
-		!!edits &&
-		(["mode", "uid", "gid"] as const).some(
-			(key) => edits[key] !== toOwnership(data)[key]
-		);
+	const current = data ? toOwnership(data) : null;
+	const changes: Partial<Ownership> = {};
+	if (edits && current) {
+		if (edits.mode !== current.mode) changes.mode = edits.mode;
+		if (edits.uid !== current.uid) changes.uid = edits.uid;
+		if (edits.gid !== current.gid) changes.gid = edits.gid;
+	}
+	const isDirty = Object.keys(changes).length > 0;
 
 	function handleOpenChange(next: boolean) {
 		if (!next) setEdits(null);
@@ -151,33 +153,30 @@ export function PropertiesDialog({
 	}
 
 	function handleSave() {
-		if (!data || !edits) return;
-		const current = toOwnership(data);
+		if (!isDirty) return;
 
-		const payload: { path: string } & Partial<Ownership> = { path };
-		if (edits.mode !== current.mode) payload.mode = edits.mode;
-		if (edits.uid !== current.uid) payload.uid = edits.uid;
-		if (edits.gid !== current.gid) payload.gid = edits.gid;
-
-		updateProperties.mutate(payload, {
-			onSuccess: () => {
-				toast.success("Properties updated");
-				setEdits(null);
-			},
-			onError: (err) => {
-				toast.error(
-					err instanceof Error
-						? err.message
-						: "Failed to update properties"
-				);
-				// mode and uid/gid are applied server-side as two separate
-				// operations, so a failure may mean one of them already
-				// took effect. Refetch and resync to the server's actual
-				// values rather than leaving this dialog showing edits that
-				// only partially applied.
-				void refetch().then(() => setEdits(null));
-			},
-		});
+		updateProperties.mutate(
+			{ path, ...changes },
+			{
+				onSuccess: () => {
+					toast.success("Properties updated");
+					setEdits(null);
+				},
+				onError: (err) => {
+					toast.error(
+						err instanceof Error
+							? err.message
+							: "Failed to update properties"
+					);
+					// mode and uid/gid are applied server-side as two separate
+					// operations, so a failure may mean one of them already
+					// took effect. Refetch and resync to the server's actual
+					// values rather than leaving this dialog showing edits that
+					// only partially applied.
+					void refetch().then(() => setEdits(null));
+				},
+			}
+		);
 	}
 
 	return (

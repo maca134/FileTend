@@ -4,9 +4,9 @@ import { useState } from "react";
 
 import { downloadPath } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
-import { useUploadWithProgress } from "@/lib/use-upload-with-progress";
+import { useUploadDrop } from "@/lib/use-upload-with-progress";
 import { cn } from "@/lib/utils";
-import { useEditorStore } from "@/store/editor-store";
+import { isTabDirty, useEditorStore } from "@/store/editor-store";
 
 import type { FileTreeNode } from "../../../api/tree";
 import { useAuthStatus, useDeleteNode, useTreeQuery } from "../../lib/queries";
@@ -70,9 +70,10 @@ export function TreeEntry({
 	const isDirectory = node.type === "directory";
 	const openFile = useEditorStore((s) => s.openFile);
 	const activeTabPath = useEditorStore((s) => s.activeTabPath);
-	const isDirty = useEditorStore(
-		(s) => s.openTabs.find((t) => t.path === node.path)?.dirty
-	);
+	const isDirty = useEditorStore((s) => {
+		const tab = s.openTabs.find((t) => t.path === node.path);
+		return !!tab && isTabDirty(tab);
+	});
 	const isExpanded = useEditorStore(
 		(s) => isDirectory && s.expandedPaths.includes(node.path)
 	);
@@ -82,17 +83,15 @@ export function TreeEntry({
 	const startRenaming = useEditorStore((s) => s.startRenaming);
 	const closeTabsUnder = useEditorStore((s) => s.closeTabsUnder);
 	const deleteNode = useDeleteNode();
-	const uploadFiles = useUploadWithProgress();
+	const { isDragOver, dropHandlers } = useUploadDrop(node.path);
 	const isFetching = useIsFetching({ queryKey: ["tree", node.path] }) > 0;
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
-	const [isDragOver, setIsDragOver] = useState(false);
 	const { data: authStatus } = useAuthStatus();
 	const permissions = authStatus?.permissions;
 	const isActive = activeTabPath === node.path;
 
-	const open = () =>
-		openFile({ path: node.path, name: node.name, dirty: false });
+	const open = () => openFile({ path: node.path, name: node.name });
 
 	const items: ContextMenuItem[] = [
 		...(isDirectory
@@ -133,24 +132,6 @@ export function TreeEntry({
 		},
 	];
 
-	const dropHandlers = isDirectory
-		? {
-				onDragOver: (e: React.DragEvent) => {
-					e.preventDefault();
-					if (permissions?.canUpload === false) return;
-					setIsDragOver(true);
-				},
-				onDragLeave: () => setIsDragOver(false),
-				onDrop: (e: React.DragEvent) => {
-					e.preventDefault();
-					e.stopPropagation();
-					setIsDragOver(false);
-					if (permissions?.canUpload === false) return;
-					uploadFiles(node.path, Array.from(e.dataTransfer.files));
-				},
-			}
-		: {};
-
 	return (
 		<>
 			{renamingPath === node.path ? (
@@ -168,7 +149,7 @@ export function TreeEntry({
 						onClick={() =>
 							isDirectory ? toggleExpanded(node.path) : open()
 						}
-						{...dropHandlers}
+						{...(isDirectory ? dropHandlers : {})}
 						className={cn(
 							"flex w-full items-center gap-1 px-2 py-1 text-left cursor-pointer",
 							isActive && "bg-accent",
@@ -187,7 +168,7 @@ export function TreeEntry({
 								)}
 							/>
 						) : (
-							<FileIcon type={node.type} path={node.path} />
+							<FileIcon path={node.path} />
 						)}
 						<span className="truncate min-w-0 -mt-1">
 							{node.name}

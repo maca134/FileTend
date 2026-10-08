@@ -11,7 +11,7 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useEditorStore } from "@/store/editor-store";
+import { isTabDirty, useEditorStore } from "@/store/editor-store";
 
 import pkg from "../../package.json";
 
@@ -20,7 +20,7 @@ function useWarnOnUnsavedClose() {
 		const handler = (e: BeforeUnloadEvent) => {
 			const hasDirtyTabs = useEditorStore
 				.getState()
-				.openTabs.some((t) => t.dirty);
+				.openTabs.some(isTabDirty);
 			if (!hasDirtyTabs) return;
 
 			e.preventDefault();
@@ -78,5 +78,3 @@ export function App() {
 		</div>
 	);
 }
-
-export default App;

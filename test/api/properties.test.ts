@@ -40,7 +40,7 @@ describe("GET /properties", () => {
 			name: string;
 			type: string;
 			size: number;
-			permissions: { octal: string; symbolic: string };
+			permissions: { mode: number };
 			owner: { uid: number; name?: string };
 			group: { gid: number; name?: string };
 			modifiedAt: string;
@@ -51,10 +51,7 @@ describe("GET /properties", () => {
 		expect(body.name).toBe("hello.txt");
 		expect(body.type).toBe("file");
 		expect(body.size).toBe(11);
-		expect(body.permissions.octal).toMatch(/^[0-7]{3}$/);
-		expect(body.permissions.symbolic).toMatch(
-			/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/
-		);
+		expect(body.permissions.mode).toBeLessThanOrEqual(0o777);
 		expect(typeof body.owner.uid).toBe("number");
 		expect(typeof body.group.gid).toBe("number");
 		expect(new Date(body.modifiedAt).toString()).not.toBe("Invalid Date");
@@ -137,10 +134,9 @@ describe("PATCH /properties", () => {
 			body: JSON.stringify({ mode: 0o640 }),
 		});
 		expect(res.status).toBe(200);
-		const body = (await res.json()) as { permissions: { octal: string } };
-		expect(body.permissions.octal).toMatch(/^[0-7]{3}$/);
+		const body = (await res.json()) as { permissions: { mode: number } };
 		if (process.platform === "linux") {
-			expect(body.permissions.octal).toBe("640");
+			expect(body.permissions.mode).toBe(0o640);
 		}
 	});
 

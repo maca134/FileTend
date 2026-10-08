@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { type OpenTab, useEditorStore } from "@/store/editor-store";
+import { type OpenTab, isTabDirty, useEditorStore } from "@/store/editor-store";
 
 import { ConfirmDialog } from "./confirm-dialog";
 import { ContextMenu, type ContextMenuItem } from "./context-menu";
@@ -12,17 +12,12 @@ import { Button } from "./ui/button";
 
 type CloseScope = "Close" | "Close Others" | "Close to the Right" | "Close All";
 
-const Tab = ({
-	tab,
-	activeTabPath,
-	setActiveTab,
-}: {
-	tab: OpenTab;
-	activeTabPath: string | null;
-	setActiveTab: (path: string) => void;
-}) => {
+const Tab = ({ tab }: { tab: OpenTab }) => {
 	const openTabs = useEditorStore((s) => s.openTabs);
 	const closeTabs = useEditorStore((s) => s.closeTabs);
+	const activeTabPath = useEditorStore((s) => s.activeTabPath);
+	const setActiveTab = useEditorStore((s) => s.setActiveTab);
+	const dirty = isTabDirty(tab);
 
 	const isActive = tab.path === activeTabPath;
 	const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -50,7 +45,7 @@ const Tab = ({
 		const scopedTabs = getTabsInScope(scope);
 		if (scopedTabs.length === 0) return;
 
-		if (scopedTabs.some((t) => t.dirty)) {
+		if (scopedTabs.some(isTabDirty)) {
 			setPendingScope(scope);
 			setConfirmCloseOpen(true);
 		} else {
@@ -58,9 +53,7 @@ const Tab = ({
 		}
 	};
 
-	const dirtyPendingTabs = getTabsInScope(pendingScope).filter(
-		(t) => t.dirty
-	);
+	const dirtyPendingTabs = getTabsInScope(pendingScope).filter(isTabDirty);
 	const confirmTitle =
 		pendingScope === "Close" ? `Close ${tab.name}?` : `${pendingScope}?`;
 	const confirmDescription =
@@ -95,7 +88,6 @@ const Tab = ({
 
 	return (
 		<div
-			key={tab.path}
 			className={cn(
 				"flex flex-col border-r text-sm",
 				isActive
@@ -117,7 +109,7 @@ const Tab = ({
 						onClick={() => setActiveTab(tab.path)}
 						className="flex flex-row cursor-pointer items-center gap-2 max-w-40 truncate"
 					>
-						<FileIcon type="file" path={tab.path} />
+						<FileIcon path={tab.path} />
 						<div className="truncate">{tab.name}</div>
 					</Button>
 					<Button
@@ -127,7 +119,7 @@ const Tab = ({
 						onClick={() => requestClose("Close")}
 						className={cn(
 							"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent",
-							!tab.dirty &&
+							!dirty &&
 								!isActive &&
 								"opacity-0 group-hover:opacity-100"
 						)}
@@ -137,11 +129,11 @@ const Tab = ({
 						<X
 							className={cn(
 								"col-start-1 row-start-1 size-5",
-								tab.dirty &&
+								dirty &&
 									"opacity-0 transition-opacity group-hover/close:opacity-100"
 							)}
 						/>
-						{tab.dirty && (
+						{dirty && (
 							<div className="col-start-1 row-start-1 h-2 w-2 rounded-full bg-accent-foreground transition-opacity group-hover/close:opacity-0" />
 						)}
 					</Button>
@@ -165,8 +157,6 @@ const Tab = ({
 
 export function TabsBar() {
 	const openTabs = useEditorStore((s) => s.openTabs);
-	const activeTabPath = useEditorStore((s) => s.activeTabPath);
-	const setActiveTab = useEditorStore((s) => s.setActiveTab);
 
 	if (openTabs.length === 0) {
 		return <div className="h-full" />;
@@ -176,12 +166,7 @@ export function TabsBar() {
 		<>
 			<div className="flex h-full items-stretch overflow-x-auto">
 				{openTabs.map((tab) => (
-					<Tab
-						key={tab.path}
-						tab={tab}
-						activeTabPath={activeTabPath}
-						setActiveTab={setActiveTab}
-					/>
+					<Tab key={tab.path} tab={tab} />
 				))}
 			</div>
 			<div className="flex-1 h-full border-b" />

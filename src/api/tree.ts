@@ -1,14 +1,12 @@
-import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import z from "zod";
 
 import { env } from "../lib/env";
 import log from "../lib/log";
 import { resolveSafePath, statOr404 } from "../lib/paths";
-import { zErrorHook } from "../lib/validation";
+import { optionalPathQuery } from "../lib/validation";
 
 export interface FileTreeNode {
 	name: string;
@@ -17,66 +15,55 @@ export interface FileTreeNode {
 	size?: number;
 }
 
-const handler = createFactory().createHandlers(
-	zValidator(
-		"query",
-		z.object({
-			path: z.string().optional(),
-		}),
-		zErrorHook
-	),
-	async (c) => {
-		const requestedPath = c.req.valid("query").path;
+const handler = createFactory().createHandlers(optionalPathQuery, async (c) => {
+	const requestedPath = c.req.valid("query").path;
 
-		const fullPath = await resolveSafePath(env.ROOT_DIR, requestedPath);
-		log.info(
-			`Resolved full path: ${requestedPath || "(root)"} -> ${fullPath}`
-		);
+	const fullPath = await resolveSafePath(env.ROOT_DIR, requestedPath);
+	log.info(`Resolved full path: ${requestedPath || "(root)"} -> ${fullPath}`);
 
-		const stats = await statOr404(fullPath, "Folder not found");
+	const stats = await statOr404(fullPath, "Folder not found");
 
-		if (!stats.isDirectory()) {
-			log.error(`Path is not a directory: ${fullPath}`);
-			throw new HTTPException(400, {
-				message: `Path is not a directory: ${fullPath}`,
-			});
-		}
-
-		const entries = await readdir(fullPath, { withFileTypes: true }).catch(
-			() => null
-		);
-		if (!entries) {
-			throw new HTTPException(404, { message: "Folder not found" });
-		}
-
-		const nodes = await Promise.all(
-			entries.map(async (entry): Promise<FileTreeNode> => {
-				const entryPath = resolve(fullPath, entry.name);
-				const isDirectory = entry.isDirectory();
-				const size = isDirectory
-					? undefined
-					: await stat(entryPath)
-							.then((s) => s.size)
-							.catch(() => undefined);
-
-				return {
-					name: entry.name,
-					path: entryPath,
-					type: isDirectory ? "directory" : "file",
-					size,
-				};
-			})
-		);
-
-		nodes.sort((a, b) => {
-			if (a.type === b.type) {
-				return a.name.localeCompare(b.name);
-			}
-			return a.type === "directory" ? -1 : 1;
+	if (!stats.isDirectory()) {
+		log.error(`Path is not a directory: ${fullPath}`);
+		throw new HTTPException(400, {
+			message: `Path is not a directory: ${fullPath}`,
 		});
-
-		return c.json({ nodes });
 	}
-);
+
+	const entries = await readdir(fullPath, { withFileTypes: true }).catch(
+		() => null
+	);
+	if (!entries) {
+		throw new HTTPException(404, { message: "Folder not found" });
+	}
+
+	const nodes = await Promise.all(
+		entries.map(async (entry): Promise<FileTreeNode> => {
+			const entryPath = resolve(fullPath, entry.name);
+			const isDirectory = entry.isDirectory();
+			const size = isDirectory
+				? undefined
+				: await stat(entryPath)
+						.then((s) => s.size)
+						.catch(() => undefined);
+
+			return {
+				name: entry.name,
+				path: entryPath,
+				type: isDirectory ? "directory" : "file",
+				size,
+			};
+		})
+	);
+
+	nodes.sort((a, b) => {
+		if (a.type === b.type) {
+			return a.name.localeCompare(b.name);
+		}
+		return a.type === "directory" ? -1 : 1;
+	});
+
+	return c.json({ nodes });
+});
 
 export default handler;

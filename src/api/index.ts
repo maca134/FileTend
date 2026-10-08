@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 
 import log from "../lib/log";
@@ -16,6 +17,7 @@ import upload from "./upload";
 const app = new Hono();
 
 const api = app
+	.use(csrf())
 	.get("/auth/status", ...status)
 	.post("/auth/login", ...login)
 	.post("/auth/logout", ...logout)

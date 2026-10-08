@@ -1,84 +1,79 @@
-import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { stat, writeFile } from "node:fs/promises";
-import z from "zod";
 
 import { env } from "../lib/env";
 import { assertExtensionAllowed, assertSizeAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
-import { isValidName, zErrorHook } from "../lib/validation";
+import { isValidName, optionalPathQuery } from "../lib/validation";
 
-const handler = createFactory().createHandlers(
-	zValidator("query", z.object({ path: z.string().optional() }), zErrorHook),
-	async (c) => {
-		if (env.READ_ONLY || !env.ALLOW_UPLOAD) {
-			throw new HTTPException(403, {
-				message: "Uploading files is disabled",
-			});
-		}
+const handler = createFactory().createHandlers(optionalPathQuery, async (c) => {
+	if (env.READ_ONLY || !env.ALLOW_UPLOAD) {
+		throw new HTTPException(403, {
+			message: "Uploading files is disabled",
+		});
+	}
 
-		const { path } = c.req.valid("query");
-		const targetDir = await resolveSafePath(env.ROOT_DIR, path);
+	const { path } = c.req.valid("query");
+	const targetDir = await resolveSafePath(env.ROOT_DIR, path);
 
-		const dirStats = await stat(targetDir).catch(() => null);
-		if (!dirStats || !dirStats.isDirectory()) {
+	const dirStats = await stat(targetDir).catch(() => null);
+	if (!dirStats || !dirStats.isDirectory()) {
+		throw new HTTPException(400, {
+			message: "Target folder does not exist",
+		});
+	}
+
+	const body = await c.req.parseBody({ all: true });
+	// With `all: true`, a field with multiple values (multi-file upload
+	// under the same "files" field) comes back as an array rather than a
+	// single File -- both shapes need flattening here.
+	const files = Object.values(body).flatMap((value) =>
+		(Array.isArray(value) ? value : [value]).filter(
+			(v): v is File => v instanceof File
+		)
+	);
+
+	if (files.length === 0) {
+		throw new HTTPException(400, { message: "No files provided" });
+	}
+
+	for (const file of files) {
+		if (!isValidName(file.name)) {
 			throw new HTTPException(400, {
-				message: "Target folder does not exist",
+				message: `Invalid file name: "${file.name}"`,
 			});
 		}
+		assertExtensionAllowed(file.name);
+		assertSizeAllowed(file.size);
+	}
 
-		const body = await c.req.parseBody({ all: true });
-		// With `all: true`, a field with multiple values (multi-file upload
-		// under the same "files" field) comes back as an array rather than a
-		// single File -- both shapes need flattening here.
-		const files = Object.values(body).flatMap((value) =>
-			(Array.isArray(value) ? value : [value]).filter(
-				(v): v is File => v instanceof File
-			)
-		);
+	const results = [];
+	for (const file of files) {
+		const destPath = await resolveSafePath(targetDir, file.name);
+		const buffer = Buffer.from(await file.arrayBuffer());
 
-		if (files.length === 0) {
-			throw new HTTPException(400, { message: "No files provided" });
-		}
-
-		for (const file of files) {
-			if (!isValidName(file.name)) {
-				throw new HTTPException(400, {
-					message: `Invalid file name: "${file.name}"`,
+		try {
+			await writeFile(destPath, buffer, { flag: "wx" });
+		} catch (err) {
+			const code = (err as NodeJS.ErrnoException).code;
+			if (code === "EEXIST") {
+				throw new HTTPException(409, {
+					message: `"${file.name}" already exists`,
 				});
 			}
-			assertExtensionAllowed(file.name);
-			assertSizeAllowed(file.size);
-		}
-
-		const results = [];
-		for (const file of files) {
-			const destPath = await resolveSafePath(targetDir, file.name);
-			const buffer = Buffer.from(await file.arrayBuffer());
-
-			try {
-				await writeFile(destPath, buffer, { flag: "wx" });
-			} catch (err) {
-				const code = (err as NodeJS.ErrnoException).code;
-				if (code === "EEXIST") {
-					throw new HTTPException(409, {
-						message: `"${file.name}" already exists`,
-					});
-				}
-				if (code === "ENOENT") {
-					throw new HTTPException(400, {
-						message: "Target folder does not exist",
-					});
-				}
-				throw err;
+			if (code === "ENOENT") {
+				throw new HTTPException(400, {
+					message: "Target folder does not exist",
+				});
 			}
-
-			results.push({ name: file.name, path: destPath });
+			throw err;
 		}
 
-		return c.json({ files: results });
+		results.push({ name: file.name, path: destPath });
 	}
-);
+
+	return c.json({ files: results });
+});
 
 export default handler;

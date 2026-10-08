@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useEditorStore } from "../store/editor-store";
 import { api, unwrap } from "./api";
 
 export function useAuthStatus() {
@@ -32,12 +33,13 @@ export function useLogout() {
 		mutationFn: async () =>
 			unwrap(await api.auth.logout.$post(), "Failed to log out"),
 		onSuccess: () => {
+			useEditorStore.setState({ openTabs: [], activeTabPath: null });
 			queryClient.invalidateQueries({ queryKey: ["auth", "status"] });
 		},
 	});
 }
 
-export function useTreeQuery(path?: string, enabled = true) {
+export function useTreeQuery(path?: string) {
 	return useQuery({
 		queryKey: ["tree", path],
 		queryFn: async () =>
@@ -45,7 +47,6 @@ export function useTreeQuery(path?: string, enabled = true) {
 				await api.tree.$get({ query: { path } }),
 				"Failed to load file tree"
 			),
-		enabled,
 	});
 }
 

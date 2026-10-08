@@ -86,14 +86,12 @@ if (!raw.success) {
 // meaningful improvement over no salt at all.
 const SECRET_KEY_SALT = "filetend/session-secret/v1";
 
-function deriveSecretKeyFromPassword(password: string): string {
-	return scryptSync(password, SECRET_KEY_SALT, 32).toString("hex");
-}
-
 const secretKey =
 	raw.data.SECRET_KEY ??
 	(raw.data.AUTH_PASSWORD
-		? deriveSecretKeyFromPassword(raw.data.AUTH_PASSWORD)
+		? scryptSync(raw.data.AUTH_PASSWORD, SECRET_KEY_SALT, 32).toString(
+				"hex"
+			)
 		: randomBytes(32).toString("hex"));
 
 const authEnabled = raw.data.AUTH_ENABLED ?? Boolean(raw.data.AUTH_PASSWORD);

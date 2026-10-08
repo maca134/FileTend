@@ -20,12 +20,6 @@ export type UploadToastState =
 	| { status: "cancelled" }
 	| { status: "error"; message: string };
 
-function uploadedLabel(fileCount: number, fileName: string) {
-	return fileCount === 1
-		? `Uploaded ${fileName}`
-		: `Uploaded ${fileCount} files`;
-}
-
 export function UploadToast(state: UploadToastState) {
 	return (
 		// Sonner only applies its own width/padding/border/background to
@@ -60,7 +54,9 @@ export function UploadToast(state: UploadToastState) {
 				<span className="flex items-center gap-2 text-emerald-500">
 					<CircleCheckIcon className="size-4 shrink-0" />
 					<span className="text-popover-foreground">
-						{uploadedLabel(state.fileCount, state.fileName)}
+						{state.fileCount === 1
+							? `Uploaded ${state.fileName}`
+							: `Uploaded ${state.fileCount} files`}
 					</span>
 				</span>
 			)}

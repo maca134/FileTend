@@ -1,6 +1,6 @@
+import { basename } from "./path";
 import {
 	SETI_DEFAULT_ICON,
-	SETI_FOLDER_ICON,
 	SETI_ICONS,
 	SETI_RULES,
 	type SetiIconData,
@@ -47,15 +47,7 @@ function resolveSetiIconName(filename: string): string {
 	return best?.icon ?? SETI_DEFAULT_ICON;
 }
 
-export function getSetiIcon(
-	path: string,
-	type: "file" | "directory"
-): SetiIconData {
-	if (type === "directory") {
-		return SETI_ICONS[SETI_FOLDER_ICON] ?? SETI_ICONS[SETI_DEFAULT_ICON]!;
-	}
-
-	const name = path.split(/[/\\]/).pop() ?? path;
-	const iconName = resolveSetiIconName(name);
+export function getSetiIcon(path: string): SetiIconData {
+	const iconName = resolveSetiIconName(basename(path));
 	return SETI_ICONS[iconName] ?? SETI_ICONS[SETI_DEFAULT_ICON]!;
 }

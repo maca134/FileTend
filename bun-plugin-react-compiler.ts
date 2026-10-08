@@ -1,8 +1,6 @@
 import { transformAsync } from "@babel/core";
 import BabelPluginReactCompiler from "babel-plugin-react-compiler";
 
-const options = {};
-
 const reactCompiler: Bun.BunPlugin = {
 	name: "react-compiler",
 	setup({ onLoad }) {
@@ -10,7 +8,7 @@ const reactCompiler: Bun.BunPlugin = {
 			const input = await Bun.file(args.path).text();
 			const result = await transformAsync(input, {
 				filename: args.path,
-				plugins: [[BabelPluginReactCompiler, options]],
+				plugins: [BabelPluginReactCompiler],
 				parserOpts: { plugins: ["jsx", "typescript"] },
 				ast: false,
 				sourceMaps: false,

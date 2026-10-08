@@ -131,7 +131,6 @@ function main() {
 
 	const iconNames = new Set(rules.map((r) => r.icon));
 	iconNames.add("default");
-	iconNames.add("folder");
 
 	const missing = [...iconNames].filter((name) => !availableIcons.has(name));
 	if (missing.length > 0) {
@@ -169,7 +168,6 @@ function main() {
 	lines.push("}");
 	lines.push("");
 	lines.push('export const SETI_DEFAULT_ICON = "default";');
-	lines.push('export const SETI_FOLDER_ICON = "folder";');
 	lines.push("");
 	lines.push(
 		`export const SETI_ICONS: Record<string, SetiIconData> = ${JSON.stringify(icons, null, "\t")};`

@@ -1,11 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { rename as renameFile, stat } from "node:fs/promises";
+import { lstat, rename as renameFile, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import z from "zod";
 
 import { env } from "../lib/env";
+import { assertExtensionAllowed } from "../lib/limits";
 import { resolveSafePath } from "../lib/paths";
 import { zErrorHook, zName } from "../lib/validation";
 
@@ -26,6 +27,14 @@ const handler = createFactory().createHandlers(
 				message: "Cannot rename the root directory",
 			});
 		}
+
+		const oldStats = await lstat(oldPath).catch(() => null);
+		if (!oldStats) {
+			throw new HTTPException(404, {
+				message: "File or folder not found",
+			});
+		}
+		if (!oldStats.isDirectory()) assertExtensionAllowed(name);
 
 		const newPath = await resolveSafePath(dirname(oldPath), name);
 
@@ -50,6 +59,17 @@ const handler = createFactory().createHandlers(
 				});
 			}
 			throw err;
+		}
+
+		// Re-checked after the rename in case a folder was swapped for a file
+		// after the check above.
+		if (!(await lstat(newPath)).isDirectory()) {
+			try {
+				assertExtensionAllowed(name);
+			} catch (err) {
+				await renameFile(newPath, oldPath);
+				throw err;
+			}
 		}
 
 		return c.json({ name, path: newPath });

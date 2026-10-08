@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
  * Dockerfile); returns undefined anywhere those files don't exist (e.g.
  * Windows dev, a distroless image) or the id isn't found.
  */
-function resolveNameFromColonFile(
+export function resolveNameFromColonFile(
 	filePath: string,
 	id: number
 ): string | undefined {
@@ -18,15 +18,7 @@ function resolveNameFromColonFile(
 			if (Number(fields[2]) === id) return fields[0];
 		}
 	} catch {
-		return undefined;
+		// unreadable/missing file: no name
 	}
 	return undefined;
-}
-
-export function resolveUserName(uid: number): string | undefined {
-	return resolveNameFromColonFile("/etc/passwd", uid);
-}
-
-export function resolveGroupName(gid: number): string | undefined {
-	return resolveNameFromColonFile("/etc/group", gid);
 }

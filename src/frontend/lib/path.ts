@@ -1,3 +1,5 @@
+export const basename = (path: string) => path.split(/[/\\]/).pop() ?? path;
+
 export function getAncestorPaths(path: string): string[] {
 	const ancestors: string[] = [];
 	for (let i = 0; i < path.length; i++) {

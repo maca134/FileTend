@@ -6,12 +6,17 @@ import {
 	expect,
 	test,
 } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import api from "../../src/api/index";
 import { env } from "../../src/lib/env";
-import { createTempRoot, removeTempRoot, resetEnvDefaults } from "../helpers";
+import {
+	canCreateSymlinks,
+	createTempRoot,
+	removeTempRoot,
+	resetEnvDefaults,
+} from "../helpers";
 
 describe("GET/PUT /file", () => {
 	let root: string;
@@ -35,9 +40,8 @@ describe("GET/PUT /file", () => {
 	test("reads back an existing file's content", async () => {
 		const res = await api.request("/file?path=hello.txt");
 		expect(res.status).toBe(200);
-		const body = (await res.json()) as { content: string; size: number };
+		const body = (await res.json()) as { content: string };
 		expect(body.content).toBe("hello world");
-		expect(body.size).toBe(11);
 	});
 
 	test("404s when the file does not exist", async () => {
@@ -97,6 +101,46 @@ describe("GET/PUT /file", () => {
 		});
 		expect(res.status).toBe(415);
 	});
+
+	test("rejects creating a file with a disallowed extension", async () => {
+		env.ALLOWED_EXTENSIONS = ["md"];
+		const res = await api.request("/file", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "new.sh", type: "file" }),
+		});
+		expect(res.status).toBe(415);
+	});
+
+	test("rejects a denied extension hidden behind a trailing /.", async () => {
+		env.DENY_EXTENSIONS = ["sh"];
+		writeFileSync(join(root, "run.sh"), "echo hi");
+		const res = await api.request("/file?path=run.sh/.", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "pwned" }),
+		});
+		expect(res.status).toBe(415);
+	});
+
+	const symlinkProbeDir = createTempRoot("filetend-symlink-probe-");
+	const symlinksSupported = canCreateSymlinks(symlinkProbeDir);
+	removeTempRoot(symlinkProbeDir);
+
+	test.skipIf(!symlinksSupported)(
+		"rejects writing through a symlink to a denied extension",
+		async () => {
+			env.DENY_EXTENSIONS = ["sh"];
+			writeFileSync(join(root, "target.sh"), "echo hi");
+			symlinkSync(join(root, "target.sh"), join(root, "notes.txt"));
+			const res = await api.request("/file?path=notes.txt", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ content: "pwned" }),
+			});
+			expect(res.status).toBe(415);
+		}
+	);
 
 	test("rejects content over the configured max size on write", async () => {
 		env.MAX_FILE_SIZE = 4;

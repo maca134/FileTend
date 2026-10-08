@@ -5,11 +5,6 @@ export class UploadCancelledError extends Error {
 	}
 }
 
-export interface UploadHandle {
-	promise: Promise<{ files: { name: string; path: string }[] }>;
-	abort: () => void;
-}
-
 // fetch() has no upload-progress events and no built-in cancel, so uploads
 // use XMLHttpRequest instead: xhr.upload.onprogress gives real progress and
 // xhr.abort() gives a native cancel.
@@ -17,7 +12,7 @@ export function uploadFilesXhr(
 	parentPath: string | undefined,
 	files: File[],
 	onProgress: (loaded: number, total: number) => void
-): UploadHandle {
+) {
 	const formData = new FormData();
 	for (const file of files) formData.append("files", file);
 

@@ -1,16 +1,23 @@
 import { type StateCreator, create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import { basename } from "../lib/path";
+
 export interface OpenTab {
 	path: string;
 	name: string;
-	dirty: boolean;
 	content?: string;
 	// Last known content on disk (from load or save), used as the baseline
-	// to compute `dirty`. Distinct from `content`, which tracks the live
+	// for isTabDirty. Distinct from `content`, which tracks the live
 	// editor buffer so unsaved edits survive a page refresh.
 	savedContent?: string;
 }
+
+export const isTabDirty = (t: OpenTab) =>
+	t.content !== undefined && t.content !== t.savedContent;
+
+const isUnder = (p: string, prefix: string) =>
+	p === prefix || p.startsWith(prefix + "/") || p.startsWith(prefix + "\\");
 
 export interface CreatingNode {
 	parentPath: string | undefined;
@@ -83,7 +90,7 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 		set({
 			openTabs: openTabs.some((t) => t.path === tab.path)
 				? openTabs
-				: [...openTabs, { ...tab, dirty: false }],
+				: [...openTabs, tab],
 			activeTabPath: tab.path,
 		});
 	},
@@ -139,13 +146,8 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 	cancelRenaming: () => set({ renamingPath: null }),
 
 	renamePath: (oldPath, newPath) => {
-		const remap = (p: string) => {
-			if (p === oldPath) return newPath;
-			if (p.startsWith(oldPath + "/") || p.startsWith(oldPath + "\\")) {
-				return newPath + p.slice(oldPath.length);
-			}
-			return p;
-		};
+		const remap = (p: string) =>
+			isUnder(p, oldPath) ? newPath + p.slice(oldPath.length) : p;
 
 		const { openTabs, activeTabPath, expandedPaths } = get();
 
@@ -153,8 +155,7 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 			openTabs: openTabs.map((t) => {
 				const remapped = remap(t.path);
 				if (remapped === t.path) return t;
-				const name = remapped.split(/[/\\]/).pop() ?? t.name;
-				return { ...t, path: remapped, name };
+				return { ...t, path: remapped, name: basename(remapped) };
 			}),
 			activeTabPath: activeTabPath ? remap(activeTabPath) : activeTabPath,
 			expandedPaths: expandedPaths.map(remap),
@@ -165,32 +166,22 @@ const createEditorStore: StateCreator<EditorState> = (set, get) => ({
 		get().closeTabs(
 			get()
 				.openTabs.map((t) => t.path)
-				.filter(
-					(p) =>
-						p === prefix ||
-						p.startsWith(prefix + "/") ||
-						p.startsWith(prefix + "\\")
-				)
+				.filter((p) => isUnder(p, prefix))
 		);
 	},
 
 	updateTabContent: (path, content) => {
 		set({
-			openTabs: get().openTabs.map((t) => {
-				if (t.path !== path) return t;
-				const dirty = content !== t.savedContent;
-				if (t.content === content && t.dirty === dirty) return t;
-				return { ...t, content, dirty };
-			}),
+			openTabs: get().openTabs.map((t) =>
+				t.path === path && t.content !== content ? { ...t, content } : t
+			),
 		});
 	},
 
 	markTabSaved: (path, content) => {
 		set({
 			openTabs: get().openTabs.map((t) =>
-				t.path === path
-					? { ...t, content, savedContent: content, dirty: false }
-					: t
+				t.path === path ? { ...t, content, savedContent: content } : t
 			),
 		});
 	},
@@ -207,15 +198,14 @@ const persistOptions = {
 	partialize: (state: EditorState) => ({
 		...state,
 		openTabs: state.openTabs.map((t) =>
-			t.dirty
+			isTabDirty(t)
 				? {
 						path: t.path,
 						name: t.name,
-						dirty: true,
 						content: t.content,
 						savedContent: t.savedContent,
 					}
-				: { path: t.path, name: t.name, dirty: false }
+				: { path: t.path, name: t.name }
 		),
 	}),
 };

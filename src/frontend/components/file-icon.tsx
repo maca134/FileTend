@@ -1,13 +1,7 @@
 import { getSetiIcon } from "../lib/seti-icons";
 
-export const FileIcon = ({
-	path,
-	type,
-}: {
-	path: string;
-	type: "file" | "directory";
-}) => {
-	const { viewBox, markup } = getSetiIcon(path, type);
+export const FileIcon = ({ path }: { path: string }) => {
+	const { viewBox, markup } = getSetiIcon(path);
 
 	return (
 		<svg

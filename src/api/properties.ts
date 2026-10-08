@@ -8,20 +8,8 @@ import z from "zod";
 
 import { env } from "../lib/env";
 import { resolveSafePath, statOr404 } from "../lib/paths";
-import { resolveGroupName, resolveUserName } from "../lib/user-lookup";
+import { resolveNameFromColonFile } from "../lib/user-lookup";
 import { pathQuery, zErrorHook } from "../lib/validation";
-
-function formatPermissions(mode: number) {
-	const bits = mode & 0o777;
-	const rwx = (n: number) =>
-		`${n & 4 ? "r" : "-"}${n & 2 ? "w" : "-"}${n & 1 ? "x" : "-"}`;
-
-	return {
-		mode: bits,
-		octal: bits.toString(8).padStart(3, "0"),
-		symbolic: `${rwx((bits >> 6) & 7)}${rwx((bits >> 3) & 7)}${rwx(bits & 7)}`,
-	};
-}
 
 function buildPropertiesResponse(fullPath: string, stats: Stats) {
 	return {
@@ -32,9 +20,15 @@ function buildPropertiesResponse(fullPath: string, stats: Stats) {
 		modifiedAt: stats.mtime.toISOString(),
 		createdAt: stats.birthtime.toISOString(),
 		accessedAt: stats.atime.toISOString(),
-		permissions: formatPermissions(stats.mode),
-		owner: { uid: stats.uid, name: resolveUserName(stats.uid) },
-		group: { gid: stats.gid, name: resolveGroupName(stats.gid) },
+		permissions: { mode: stats.mode & 0o777 },
+		owner: {
+			uid: stats.uid,
+			name: resolveNameFromColonFile("/etc/passwd", stats.uid),
+		},
+		group: {
+			gid: stats.gid,
+			name: resolveNameFromColonFile("/etc/group", stats.gid),
+		},
 	};
 }
 

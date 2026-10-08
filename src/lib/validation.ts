@@ -22,6 +22,12 @@ export const pathQuery = zValidator(
 	zErrorHook
 );
 
+export const optionalPathQuery = zValidator(
+	"query",
+	z.object({ path: z.string().optional() }),
+	zErrorHook
+);
+
 export function isValidName(value: string): boolean {
 	return (
 		value !== "." &&

@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import z from "zod";
 
@@ -33,7 +33,7 @@ const file = {
 		}
 		const content = buffer.toString("utf-8");
 
-		return c.json({ path: fullPath, content, size: stats.size });
+		return c.json({ content });
 	}),
 	put: createHandlers(
 		pathQuery,
@@ -48,15 +48,16 @@ const file = {
 			const { path } = c.req.valid("query");
 			const { content } = c.req.valid("json");
 
-			assertExtensionAllowed(path);
-			assertSizeAllowed(Buffer.byteLength(content, "utf-8"));
-
 			const fullPath = await resolveSafePath(env.ROOT_DIR, path);
+
+			assertSizeAllowed(Buffer.byteLength(content, "utf-8"));
 
 			const stats = await statOr404(fullPath, "File not found");
 			if (!stats.isFile()) {
 				throw new HTTPException(404, { message: "File not found" });
 			}
+
+			assertExtensionAllowed(await realpath(fullPath));
 
 			await writeFile(fullPath, content, "utf-8");
 
@@ -81,6 +82,7 @@ const file = {
 			}
 
 			const { parentPath, name, type } = c.req.valid("json");
+			if (type === "file") assertExtensionAllowed(name);
 
 			const parentDir = await resolveSafePath(env.ROOT_DIR, parentPath);
 			const fullPath = await resolveSafePath(parentDir, name);

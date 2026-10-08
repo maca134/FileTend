@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { type DragEvent, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -6,6 +7,7 @@ import {
 	type UploadToastState,
 } from "@/components/upload-progress-toast";
 
+import { useAuthStatus } from "./queries";
 import { UploadCancelledError, uploadFilesXhr } from "./upload";
 
 export function useUploadWithProgress() {
@@ -71,5 +73,31 @@ export function useUploadWithProgress() {
 							}
 				);
 			});
+	};
+}
+
+export function useUploadDrop(parentPath: string | undefined) {
+	const uploadFiles = useUploadWithProgress();
+	const { data: authStatus } = useAuthStatus();
+	const canUpload = authStatus?.permissions?.canUpload !== false;
+	const [isDragOver, setIsDragOver] = useState(false);
+
+	return {
+		isDragOver,
+		dropHandlers: {
+			onDragOver: (e: DragEvent) => {
+				e.preventDefault();
+				if (canUpload) setIsDragOver(true);
+			},
+			onDragLeave: () => setIsDragOver(false),
+			onDrop: (e: DragEvent) => {
+				e.preventDefault();
+				e.stopPropagation();
+				setIsDragOver(false);
+				if (canUpload) {
+					uploadFiles(parentPath, Array.from(e.dataTransfer.files));
+				}
+			},
+		},
 	};
 }

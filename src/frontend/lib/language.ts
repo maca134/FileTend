@@ -1,3 +1,5 @@
+import { basename } from "./path";
+
 const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
 	json: "json",
 	yml: "yaml",
@@ -32,14 +34,11 @@ const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
 
 const NAME_LANGUAGE_MAP: Record<string, string> = {
 	dockerfile: "dockerfile",
-	"docker-compose.yml": "yaml",
-	"docker-compose.yaml": "yaml",
 	makefile: "makefile",
 };
 
 export function getLanguageForPath(path: string): string {
-	const name = path.split(/[/\\]/).pop() ?? path;
-	const lowerName = name.toLowerCase();
+	const lowerName = basename(path).toLowerCase();
 
 	if (lowerName in NAME_LANGUAGE_MAP) {
 		return NAME_LANGUAGE_MAP[lowerName] ?? "plaintext";

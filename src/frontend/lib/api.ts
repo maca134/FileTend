@@ -23,11 +23,5 @@ export async function unwrap<
 }
 
 export function downloadPath(path: string) {
-	const url = `/api/download?path=${encodeURIComponent(path)}`;
-	const a = document.createElement("a");
-	a.href = url;
-	a.rel = "noopener";
-	document.body.appendChild(a);
-	a.click();
-	a.remove();
+	location.assign(`/api/download?path=${encodeURIComponent(path)}`);
 }

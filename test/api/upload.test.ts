@@ -13,6 +13,8 @@ import api from "../../src/api/index";
 import { env } from "../../src/lib/env";
 import { createTempRoot, removeTempRoot, resetEnvDefaults } from "../helpers";
 
+const SAME_ORIGIN = { "Sec-Fetch-Site": "same-origin" };
+
 function fileFormData(name: string, content: string): FormData {
 	const form = new FormData();
 	form.append("files", new File([content], name));
@@ -41,6 +43,7 @@ describe("POST /upload", () => {
 	test("uploads a file into the target directory", async () => {
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("new.txt", "content"),
 		});
 		expect(res.status).toBe(200);
@@ -58,6 +61,7 @@ describe("POST /upload", () => {
 
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: form,
 		});
 		expect(res.status).toBe(200);
@@ -76,6 +80,7 @@ describe("POST /upload", () => {
 	test("409s when a file with the same name already exists", async () => {
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("new.txt", "different content"),
 		});
 		expect(res.status).toBe(409);
@@ -84,6 +89,7 @@ describe("POST /upload", () => {
 	test("400s with no files in the request", async () => {
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: new FormData(),
 		});
 		expect(res.status).toBe(400);
@@ -92,6 +98,7 @@ describe("POST /upload", () => {
 	test("400s when the target directory does not exist", async () => {
 		const res = await api.request("/upload?path=does-not-exist", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("x.txt", "x"),
 		});
 		expect(res.status).toBe(400);
@@ -101,6 +108,7 @@ describe("POST /upload", () => {
 		env.ALLOW_UPLOAD = false;
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("blocked.txt", "x"),
 		});
 		expect(res.status).toBe(403);
@@ -110,6 +118,7 @@ describe("POST /upload", () => {
 		env.READ_ONLY = true;
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("blocked2.txt", "x"),
 		});
 		expect(res.status).toBe(403);
@@ -119,6 +128,7 @@ describe("POST /upload", () => {
 		env.ALLOWED_EXTENSIONS = ["md"];
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("blocked.exe", "x"),
 		});
 		expect(res.status).toBe(415);
@@ -127,15 +137,29 @@ describe("POST /upload", () => {
 	test("400s on a file name containing a path separator", async () => {
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("sub/dir/escape.txt", "x"),
 		});
 		expect(res.status).toBe(400);
+	});
+
+	test("403s on a cross-site form upload", async () => {
+		const res = await api.request("/upload?path=dest", {
+			method: "POST",
+			headers: {
+				"Sec-Fetch-Site": "cross-site",
+				Origin: "https://evil.example",
+			},
+			body: fileFormData("csrf.txt", "x"),
+		});
+		expect(res.status).toBe(403);
 	});
 
 	test("413s on a file over the configured max size", async () => {
 		env.MAX_FILE_SIZE = 4;
 		const res = await api.request("/upload?path=dest", {
 			method: "POST",
+			headers: SAME_ORIGIN,
 			body: fileFormData("toobig.txt", "way too much content"),
 		});
 		expect(res.status).toBe(413);
