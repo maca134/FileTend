@@ -7,7 +7,11 @@ node_modules
 Dockerfile
 compose.yaml
 test
+e2e
+playwright.config.ts
 test-files
+test-results
+playwright-report
 coverage
 *.md
 api.http

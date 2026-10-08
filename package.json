@@ -9,6 +9,7 @@
 		"format": "prettier --write \"**/*.{ts,tsx,json,html,css}\"",
 		"lint": "eslint --fix",
 		"test": "bun test",
+		"test:e2e": "playwright test",
 		"generate-icons": "bun scripts/generate-seti-icons.ts",
 		"prerelease": "bun lint && bun format && bun test",
 		"release": "bun scripts/release.ts"
@@ -39,6 +40,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.64.0",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.2",
 		"@types/archiver": "^8.0.0",
 		"@types/bun": "latest",

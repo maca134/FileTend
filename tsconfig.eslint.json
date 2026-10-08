@@ -5,6 +5,8 @@
 		"src/**/*.tsx",
 		"test/**/*.ts",
 		"scripts/**/*.ts",
+		"e2e/**/*.ts",
+		"playwright.config.ts",
 		"bun-env.d.ts",
 		"bun-plugin-react-compiler.ts"
 	]

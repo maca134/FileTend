@@ -6,6 +6,11 @@ out
 dist
 *.tgz
 
+# e2e
+test-files
+test-results
+playwright-report
+
 # code coverage
 coverage
 *.lcov
