@@ -3,7 +3,7 @@ import type { Stats } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "path";
 
-function isContained(root: string, target: string): boolean {
+export function isContained(root: string, target: string): boolean {
 	const rel = relative(root, target);
 	return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }

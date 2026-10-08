@@ -43,7 +43,7 @@ export function UploadToast(state: UploadToastState) {
 					<Button
 						size="sm"
 						variant="ghost"
-						className="cursor-pointer self-end"
+						className="self-end"
 						onClick={state.onCancel}
 					>
 						Cancel

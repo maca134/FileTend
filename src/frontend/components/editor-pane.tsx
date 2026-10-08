@@ -74,11 +74,7 @@ export function EditorPane() {
 					toast.success(`Saved ${tab.name}`);
 				},
 				onError: (err) => {
-					toast.error(
-						err instanceof Error
-							? err.message
-							: `Failed to save ${tab.name}`
-					);
+					toast.error(err.message);
 				},
 			}
 		);
@@ -118,7 +114,6 @@ export function EditorPane() {
 					<Button
 						size="icon-sm"
 						variant="ghost"
-						className="cursor-pointer"
 						disabled={!canSave}
 						onClick={() => setConfirmRevertOpen(true)}
 						title="Revert changes"
@@ -128,7 +123,6 @@ export function EditorPane() {
 					<Button
 						size="icon-sm"
 						variant="ghost"
-						className="cursor-pointer"
 						disabled={!canSave}
 						onClick={handleSave}
 						title="Save changes"
@@ -145,14 +139,11 @@ export function EditorPane() {
 				{isError && (
 					<div className="flex h-full flex-col items-center justify-center gap-3 text-sm">
 						<span className="px-4 text-center text-destructive">
-							{error instanceof Error
-								? error.message
-								: "Cannot preview this file."}
+							{error?.message}
 						</span>
 						<Button
 							size="sm"
 							variant="secondary"
-							className="cursor-pointer"
 							onClick={() => downloadPath(activeTab.path)}
 						>
 							<Download className="h-3 w-3" />

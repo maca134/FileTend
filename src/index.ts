@@ -2,11 +2,12 @@ import index from "./frontend/index.html";
 
 import { serve } from "bun";
 import { Hono } from "hono";
-import { isAbsolute, relative, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import api from "./api";
 import { env } from "./lib/env";
 import log from "./lib/log";
+import { isContained } from "./lib/paths";
 
 const app = new Hono();
 
@@ -26,8 +27,7 @@ async function serveMonacoAsset(req: Request): Promise<Response> {
 	);
 	const fullPath = resolve(monacoVsRoot, subPath);
 
-	const rel = relative(monacoVsRoot, fullPath);
-	if (rel.startsWith("..") || isAbsolute(rel)) {
+	if (!isContained(monacoVsRoot, fullPath)) {
 		return new Response("Not found", { status: 404 });
 	}
 

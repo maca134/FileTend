@@ -2,7 +2,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { formatBytes } from "../lib/format";
-import { getAncestorPaths } from "../lib/path";
 import {
 	useAuthStatus,
 	usePropertiesQuery,
@@ -132,8 +131,7 @@ export function PropertiesDialog({
 	const updateProperties = useUpdatePropertiesMutation();
 	const { data: authStatus } = useAuthStatus();
 	const permissions = authStatus?.permissions;
-	const ancestors = getAncestorPaths(path);
-	const location = ancestors[ancestors.length - 1] ?? "/";
+	const location = path.slice(0, path.lastIndexOf("/")) || "/";
 
 	// Unsaved edits; null means "show the server's current values".
 	const [edits, setEdits] = useState<Ownership | null>(null);
@@ -163,11 +161,7 @@ export function PropertiesDialog({
 					setEdits(null);
 				},
 				onError: (err) => {
-					toast.error(
-						err instanceof Error
-							? err.message
-							: "Failed to update properties"
-					);
+					toast.error(err.message);
 					// mode and uid/gid are applied server-side as two separate
 					// operations, so a failure may mean one of them already
 					// took effect. Refetch and resync to the server's actual

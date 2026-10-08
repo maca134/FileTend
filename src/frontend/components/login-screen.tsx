@@ -32,9 +32,7 @@ export function LoginScreen() {
 				/>
 				{login.isError && (
 					<p className="text-sm text-destructive">
-						{login.error instanceof Error
-							? login.error.message
-							: "Failed to log in"}
+						{login.error?.message}
 					</p>
 				)}
 				<Button type="submit" disabled={login.isPending || !password}>

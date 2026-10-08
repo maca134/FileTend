@@ -85,7 +85,6 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="cursor-pointer"
 						title={
 							permissions?.canCreate === false
 								? "New File (disabled)"
@@ -99,7 +98,6 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="cursor-pointer"
 						title={
 							permissions?.canCreate === false
 								? "New Folder (disabled)"
@@ -113,7 +111,6 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="cursor-pointer"
 						title="Refresh"
 						onClick={handleRefresh}
 					>
@@ -122,7 +119,6 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="cursor-pointer"
 						title="Collapse All"
 						onClick={collapseAll}
 					>
@@ -131,7 +127,6 @@ export function FileTree() {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="cursor-pointer"
 						title={
 							permissions?.canUpload === false
 								? "Upload (disabled)"
@@ -159,7 +154,6 @@ export function FileTree() {
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							className="cursor-pointer"
 							title="Log out"
 							onClick={() => logout.mutate()}
 						>

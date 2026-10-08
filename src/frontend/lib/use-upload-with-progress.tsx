@@ -66,10 +66,7 @@ export function useUploadWithProgress() {
 						? { status: "cancelled" }
 						: {
 								status: "error",
-								message:
-									err instanceof Error
-										? err.message
-										: "Failed to upload",
+								message: err.message,
 							}
 				);
 			});

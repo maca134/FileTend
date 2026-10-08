@@ -107,7 +107,7 @@ const Tab = ({ tab }: { tab: OpenTab }) => {
 						variant={"invisible"}
 						type="button"
 						onClick={() => setActiveTab(tab.path)}
-						className="flex flex-row cursor-pointer items-center gap-2 max-w-40 truncate"
+						className="flex flex-row items-center gap-2 max-w-40 truncate"
 					>
 						<FileIcon path={tab.path} />
 						<div className="truncate">{tab.name}</div>
@@ -118,7 +118,7 @@ const Tab = ({ tab }: { tab: OpenTab }) => {
 						size={"icon-xs"}
 						onClick={() => requestClose("Close")}
 						className={cn(
-							"group/close relative grid cursor-pointer place-items-center mr-2 hover:bg-accent",
+							"group/close relative grid place-items-center mr-2 hover:bg-accent",
 							!dirty &&
 								!isActive &&
 								"opacity-0 group-hover:opacity-100"
