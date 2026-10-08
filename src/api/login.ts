@@ -8,6 +8,9 @@ import { env } from "../lib/env";
 import { setSessionCookie } from "../lib/session";
 import { zErrorHook } from "../lib/validation";
 
+// ponytail: global per-request delay, slows serial guessing only; per-IP backoff if brute force matters
+const FAILED_LOGIN_DELAY_MS = 1000;
+
 const schema = z.object({
 	password: z.string(),
 });
@@ -33,6 +36,7 @@ const handler = createFactory().createHandlers(
 
 		// env.ts guarantees AUTH_PASSWORD is set whenever AUTH_ENABLED is true.
 		if (!safeCompare(password, env.AUTH_PASSWORD ?? "")) {
+			await Bun.sleep(FAILED_LOGIN_DELAY_MS);
 			throw new HTTPException(401, { message: "Invalid password" });
 		}
 

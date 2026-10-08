@@ -60,6 +60,7 @@ All variables below are read from the environment (`.env` when using Compose). S
 | `DENY_EXTENSIONS` | *(empty)* | Optional deny-list, comma-separated |
 | `AUTH_PASSWORD` | *(empty)* | Single shared password. Empty = no password set |
 | `AUTH_ENABLED` | auto | Defaults to `true` if `AUTH_PASSWORD` is set, else `false`. Can be explicitly overridden (e.g. set `false` to rely on a reverse-proxy's auth instead) |
+| `ALLOWED_HOSTS` | *(empty)* | Optional comma-separated hostnames the API answers to; other `Host` headers get 403. Blocks DNS rebinding, recommended when auth is off. Empty = any host |
 | `SECRET_KEY` | auto | Signs the session cookie. If unset, derived from `AUTH_PASSWORD` (stable across restarts). Falls back to a random per-process key if neither is set. Can be explicitly overridden |
 | `PUID` / `PGID` | `1000` | Docker Compose only, not read by the app itself — the uid/gid the container runs as. Match these to the owner of the host folder mounted at `/srv` |
 | `BUN_PUBLIC_TAB_PERSISTENCE` | `session` | Frontend-only, inlined at build time. Where unsaved editor changes are kept in the browser: `local`, `session`, or `none` |

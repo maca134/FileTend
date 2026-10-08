@@ -51,6 +51,7 @@ const raw = z
 		DENY_EXTENSIONS: csvList.optional(),
 		AUTH_PASSWORD: z.string().optional(),
 		AUTH_ENABLED: z.stringbool().optional(),
+		ALLOWED_HOSTS: csvList.optional(),
 	})
 	// An env var set to the empty string (e.g. `- AUTH_PASSWORD=${AUTH_PASSWORD:-}`
 	// in a compose file, when AUTH_PASSWORD isn't set in .env) is functionally

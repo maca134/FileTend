@@ -104,6 +104,16 @@ describe("auth flow", () => {
 		expect(res.status).toBe(401);
 	});
 
+	test("login delays the response to a wrong password", async () => {
+		const start = performance.now();
+		await api.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ password: "wrong" }),
+		});
+		expect(performance.now() - start).toBeGreaterThanOrEqual(900);
+	});
+
 	test("login rejects when auth is disabled", async () => {
 		env.AUTH_ENABLED = false;
 		const res = await api.request("/auth/login", {
@@ -148,6 +158,32 @@ describe("auth flow", () => {
 		});
 		expect(treeRes.status).toBe(200);
 		expect(treeRes.headers.get("set-cookie")).toContain("session=");
+	});
+
+	test("session cookie is Secure only over https", async () => {
+		const login = (url: string, headers: Record<string, string> = {}) =>
+			api.request(url, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", ...headers },
+				body: JSON.stringify({ password: TEST_PASSWORD }),
+			});
+		const http = await login("/auth/login");
+		expect(http.headers.get("set-cookie")).not.toContain("Secure");
+		const https = await login("https://localhost/auth/login");
+		expect(https.headers.get("set-cookie")).toContain("Secure");
+		const proxied = await login("/auth/login", {
+			"X-Forwarded-Proto": "https",
+		});
+		expect(proxied.headers.get("set-cookie")).toContain("Secure");
+	});
+
+	test("ALLOWED_HOSTS rejects other Host names", async () => {
+		env.AUTH_ENABLED = false;
+		env.ALLOWED_HOSTS = ["localhost"];
+		expect((await api.request("http://localhost/tree")).status).toBe(200);
+		expect((await api.request("http://evil.example/tree")).status).toBe(
+			403
+		);
 	});
 
 	test("logout clears the session cookie", async () => {

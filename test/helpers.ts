@@ -42,6 +42,7 @@ export function resetEnvDefaults(): void {
 	env.DENY_EXTENSIONS = undefined;
 	env.AUTH_ENABLED = false;
 	env.AUTH_PASSWORD = undefined;
+	env.ALLOWED_HOSTS = undefined;
 }
 
 /** True if the current process/filesystem can create symlinks without elevation. */

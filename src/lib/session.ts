@@ -21,6 +21,9 @@ export async function setSessionCookie(c: Context): Promise<void> {
 		env.SECRET_KEY,
 		{
 			httpOnly: true,
+			secure:
+				new URL(c.req.url).protocol === "https:" ||
+				c.req.header("x-forwarded-proto") === "https",
 			sameSite: "Lax",
 			path: "/",
 			maxAge: SESSION_MAX_AGE,

@@ -31,6 +31,7 @@ services:
             - DENY_EXTENSIONS=${DENY_EXTENSIONS:-}
             - AUTH_PASSWORD=${AUTH_PASSWORD:-}
             - AUTH_ENABLED=${AUTH_ENABLED:-}
+            - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
 networks:
     default:
         name: filetend

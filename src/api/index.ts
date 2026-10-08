@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 
+import { env } from "../lib/env";
 import log from "../lib/log";
 import { auth } from "../middleware/auth";
 import download from "./download";
@@ -17,6 +18,13 @@ import upload from "./upload";
 const app = new Hono();
 
 const api = app
+	.use(async (c, next) => {
+		const host = new URL(c.req.url).hostname.toLowerCase();
+		if (env.ALLOWED_HOSTS && !env.ALLOWED_HOSTS.includes(host)) {
+			throw new HTTPException(403, { message: "Host not allowed" });
+		}
+		await next();
+	})
 	.use(csrf())
 	.get("/auth/status", ...status)
 	.post("/auth/login", ...login)
